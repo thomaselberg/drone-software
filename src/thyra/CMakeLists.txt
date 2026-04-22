@@ -77,7 +77,9 @@ target_include_directories(thyra_mission_executor PUBLIC
 # 
 install(PROGRAMS
   script/gimbal.py
-  DESTINATION lib/${PROJECT_NAME}/script
+  script/mission_zero.py
+  script/synthetic_camera_sim.py
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 
