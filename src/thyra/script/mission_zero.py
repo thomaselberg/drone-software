@@ -16,14 +16,23 @@ class MissionZero(Node):
     def __init__(self):
         super().__init__('mission_zero')
 
-        # QoS Profiles
-        qos_reliable = QoSProfile(
-            reliability=ReliabilityPolicy.RELIABLE,
-            durability=DurabilityPolicy.VOLATILE,
+        # Matched to asr_autopilot (main.cpp:57-59)
+        qos_heartbeat = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
             history=HistoryPolicy.KEEP_LAST,
-            depth=10
+            depth=1
         )
         
+        # Matched to asr_autopilot (main.cpp:362 uses qos which is TransientLocal)
+        qos_manual = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1
+        )
+
+        # Matched to standard sensor data
         qos_sensor = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.VOLATILE,
@@ -42,8 +51,8 @@ class MissionZero(Node):
         self.create_subscription(VehicleLocalPosition, '/fmu/out/vehicle_local_position', self.lpos_cb, qos_sensor)
 
         # Publishers
-        self.heartbeat_pub = self.create_publisher(GcsHeartbeat, 'in/gcs_heartbeat', 10)
-        self.manual_pub = self.create_publisher(ManualControlInput, 'in/manual_input', 10)
+        self.heartbeat_pub = self.create_publisher(GcsHeartbeat, 'in/gcs_heartbeat', qos_heartbeat)
+        self.manual_pub = self.create_publisher(ManualControlInput, 'in/manual_input', qos_manual)
 
         # Action Client
         self.cmd_client = ActionClient(self, DroneCommand, 'in/drone_command')
@@ -62,7 +71,7 @@ class MissionZero(Node):
 
     def heartbeat_timer(self):
         msg = GcsHeartbeat()
-        msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
+        msg.timestamp = float(self.get_clock().now().nanoseconds / 1e9)
         self.heartbeat_pub.publish(msg)
 
     def send_cmd(self, cmd_type, target_pose=None):
@@ -86,9 +95,9 @@ class MissionZero(Node):
                 self.state_start_time = now
 
         elif self.state == "ARMING":
-            if self.drone_state.arming_state == 2:  # ARMED
+            if self.drone_state.arming_state == 1:  # ARMED (from state_manager.h)
                 self.get_logger().info("Armed! Sending Takeoff...")
-                self.send_cmd("takeoff", target_pose=[0.0, 0.0, -2.5]) # 2.5m altitude
+                self.send_cmd("takeoff", target_pose=[-2.5]) # 2.5m altitude (negative in NED)
                 self.state = "TAKEOFF"
                 self.state_start_time = now
 
@@ -106,7 +115,7 @@ class MissionZero(Node):
                 # pitch = 0.15 corresponds to ~0.5m/s North as per mapping
                 msg = ManualControlInput()
                 msg.roll = 0.0
-                msg.pitch = 0.15 
+                msg.pitch = 0.8 # Boosted for ~1.5 m/s forward speed
                 msg.yaw_velocity = 0.0
                 msg.thrust = 0.0 # Hover in vertical axis
                 self.manual_pub.publish(msg)
@@ -117,7 +126,7 @@ class MissionZero(Node):
                 self.state_start_time = now
 
         elif self.state == "LANDING":
-            if self.drone_state.arming_state == 1:  # DISARMED
+            if self.drone_state.arming_state == 0:  # DISARMED (from state_manager.h)
                 self.get_logger().info("Landed and Disarmed. Mission Complete.")
                 self.state = "DONE"
 

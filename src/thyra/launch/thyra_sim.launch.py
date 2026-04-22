@@ -63,7 +63,7 @@ def generate_launch_description():
                 echo "Now in: $(pwd)" && \
                 export GAZEBO_RESOURCE_PATH=~/PX4-Autopilot_thyra/Tools/simulation/gz/worlds:$GAZEBO_RESOURCE_PATH && \
                 echo "Now running PX4 SITL with Gazebo X500 world" && \
-                make px4_sitl gz_x500_lidar_down_windy > /dev/null 2>&1
+                make px4_sitl gz_x500_lidar_down > /dev/null 2>&1
                 '''
             ],
             shell=True,
