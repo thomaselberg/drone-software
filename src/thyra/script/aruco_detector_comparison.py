@@ -115,7 +115,7 @@ class ArucoDetectorComparison(Node):
 
         # The error for control is (Target - Boresight) in ground meters
         rel_err = ground_target - ground_center
-        return rel_err[:2] # [x_m, y_m] relative to FOV center
+        return rel_err[:2] # [x_m, y_m] relative to drone in NED
 
     def _rot(self, roll, pitch, yaw):
         cr, sr = math.cos(roll), math.sin(roll)

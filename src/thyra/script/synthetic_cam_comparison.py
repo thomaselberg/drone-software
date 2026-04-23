@@ -41,7 +41,7 @@ class SyntheticComparisonCam(Node):
         self.declare_parameter('whiteout_interval_s', 10.0)
         self.declare_parameter('whiteout_duration_s', 0.2)
         self.declare_parameter('camera_pitch_deg', 45.0)
-        self.declare_parameter('marker_size_m', 0.4)
+        self.declare_parameter('marker_size_m', 0.5)
         self.declare_parameter('width', 640)
         self.declare_parameter('height', 480)
         self.declare_parameter('hfov_deg', 85.0)

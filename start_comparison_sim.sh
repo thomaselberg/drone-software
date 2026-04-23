@@ -11,8 +11,11 @@
 # ═══════════════════════════════════════════════════════════════════════
 
 # ── Arguments ─────────────────────────────────────────────────────────
-MODE="${1:-GIMBAL}"            # STATIC or GIMBAL
-WIND="${2:-none}"               # none, gust1, gust2, gust3
+# ── Arguments ─────────────────────────────────────────────────────────
+MODE_RAW="${1:-GIMBAL}"
+MODE=$(echo "$MODE_RAW" | tr '[:lower:]' '[:upper:]')
+WIND="${2:-none}"
+TARGET_DIST="10.0"   # Meters North
 
 # ── Colors ────────────────────────────────────────────────────────────
 GREEN='\033[0;32m'
@@ -28,6 +31,7 @@ export DISPLAY=${DISPLAY:-:1}
 echo -e "${BLUE}═══════════════════════════════════════════════════${NC}"
 echo -e "${CYAN}   FAIR COMPARISON SIMULATION                     ${NC}"
 echo -e "${CYAN}   Mode: ${GREEN}${MODE}${CYAN}   Wind: ${GREEN}${WIND}${NC}"
+echo -e "${CYAN}   Target Distance: ${GREEN}${TARGET_DIST}m${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════${NC}"
 
 # ── 1. Cleanup ────────────────────────────────────────────────────────
@@ -67,7 +71,7 @@ SIM_PID=$!
 # ── 5. Launch Synthetic Camera + Target Engine ────────────────────────
 echo -e "${BLUE}>>> [2/5] Launching comparison synthetic camera...${NC}"
 ros2 run thyra synthetic_cam_comparison.py --ros-args \
-    -p target_start_x:=20.0 \
+    -p target_start_x:="${TARGET_DIST}" \
     -p target_start_y:=0.0 \
     -p whiteout_interval_s:=10.0 \
     -p whiteout_duration_s:=0.2 \
@@ -80,10 +84,15 @@ ros2 run thyra aruco_detector_comparison.py &
 DET_PID=$!
 
 # ── 7. Launch Wind Gust Generator ────────────────────────────────────
-echo -e "${BLUE}>>> [4/5] Launching wind gust generator (${WIND})...${NC}"
-ros2 run thyra wind_gust_generator.py --ros-args \
-    -p scenario:="${WIND}" &
-WIND_PID=$!
+if [ "$WIND" != "none" ]; then
+    echo -e "${BLUE}>>> [4/5] Launching wind gust generator (${WIND})...${NC}"
+    ros2 run thyra wind_gust_generator.py --ros-args \
+        -p scenario:="${WIND}" &
+    WIND_PID=$!
+else
+    echo -e "${YELLOW}>>> [4/5] Skipping wind gust generator (none)...${NC}"
+    WIND_PID=""
+fi
 
 # ── 8. Wait for autopilot readiness ──────────────────────────────────
 echo -e "${YELLOW}>>> Waiting for THYRA OPERATIONAL...${NC}"
@@ -100,7 +109,7 @@ echo -e "${GREEN}>>> [5/5] Launching mission_comparison (${MODE}, ${WIND})...${N
 ros2 run thyra mission_comparison.py --ros-args \
     -p mode:="${MODE}" \
     -p wind_scenario:="${WIND}" \
-    -p target_start_x:=20.0 \
+    -p target_start_x:="${TARGET_DIST}" \
     -p target_start_y:=0.0 &
 MISSION_PID=$!
 

@@ -64,12 +64,12 @@ class MissionComparison(Node):
     # ── Tuning constants ──────────────────────────────────────────────
     TAKEOFF_ALT       = 5.0    # m AGL
     DESCEND_ALT       = 1.0    # m AGL
-    STABILIZE_TIME    = 10.0   # seconds
+    STABILIZE_TIME    = 1.0    # shortened from 10.0s
     LOCK_LOSS_TIMEOUT = 5.0    # seconds → RTL (increased to prevent premature failsafe)
     SLANT_SWEEP_TIME  = 5.0    # seconds for 45°→90° sweep
     BLIND_PLUNGE_VZ   = 0.5    # m/s descent rate for Mode A
-    PID_KP            = 0.4    # Restored authority for faster descent
-    PID_KD            = 0.1
+    PID_KP            = 0.8    # Increased to reduce lag during sweep
+    PID_KD            = 0.0    # Removed D to prevent jerkiness
     DESCEND_VZ        = 0.5    # m/s target descent rate (NED +Z)
     MAX_VEL           = 2.0    # m/s max horizontal velocity command
 
@@ -79,7 +79,7 @@ class MissionComparison(Node):
         # ── Parameters ────────────────────────────────────────────────
         self.declare_parameter('mode', 'GIMBAL')
         self.declare_parameter('wind_scenario', 'none')
-        self.declare_parameter('target_start_x', 20.0)
+        self.declare_parameter('target_start_x', 10.0)
         self.declare_parameter('target_start_y', 0.0)
         self.mode = self.get_parameter('mode').value.upper()
         self.wind_scenario = self.get_parameter('wind_scenario').value
@@ -155,6 +155,7 @@ class MissionComparison(Node):
         # Last valid commands for continuity on lock loss
         self.last_cmd_pitch = 0.0
         self.last_cmd_roll  = 0.0
+        self.blind_plunge_active = False  # Track if Mode A started its final drop
 
         # ── Timers ────────────────────────────────────────────────────
         self.create_timer(0.1, self._heartbeat_tick)
@@ -163,6 +164,9 @@ class MissionComparison(Node):
         self.get_logger().info(
             f'Mission Comparison started  mode={self.mode}  '
             f'wind={self.wind_scenario}')
+        
+        # Ensure results directory exists
+        os.makedirs(os.path.expanduser('~/drone-software/results'), exist_ok=True)
 
     # ── Callbacks ─────────────────────────────────────────────────────
     def _drone_cb(self, msg: DroneState):
@@ -302,7 +306,8 @@ class MissionComparison(Node):
                 lock_age = (self.get_clock().now() - self.last_lock_time).nanoseconds / 1e9
                 if lock_age > self.LOCK_LOSS_TIMEOUT:
                     self.get_logger().warn(
-                        f'LOCK LOST for {lock_age:.1f}s → LANDING (RTL string was invalid)')
+                        f'LOCK LOST for {lock_age:.1f}s → ABORTING')
+                    self._record_kpi()  # Log where we were when we lost lock
                     self._transition(MissionState.RTL)
                     return
                 elif lock_age > 0.5 and not self.locked:
@@ -337,13 +342,7 @@ class MissionComparison(Node):
             
             # Transition immediately on lock
             if self.locked:
-                self.get_logger().info('ArUco LOCKED → STABILIZE_5M')
-                self._transition(MissionState.STABILIZE_5M)
-
-        elif self.state == MissionState.STABILIZE_5M:
-            self._track_target()
-            if elapsed >= self.STABILIZE_TIME:
-                self.get_logger().info('Stable 10 s at 5 m → DESCEND')
+                self.get_logger().info('ArUco LOCKED → Immediate DESCEND')
                 self._transition(MissionState.DESCEND_TO_1M)
 
         elif self.state == MissionState.DESCEND_TO_1M:
@@ -357,7 +356,7 @@ class MissionComparison(Node):
         elif self.state == MissionState.STABILIZE_1M:
             self._track_target()
             if elapsed >= self.STABILIZE_TIME:
-                self.get_logger().info('Stable 10 s at 1 m → TERMINAL_LAND')
+                self.get_logger().info('Stable at 1 m → TERMINAL_LAND')
                 self.terminal_start = time.monotonic()
                 self._transition(MissionState.TERMINAL_LAND)
 
@@ -405,25 +404,27 @@ class MissionComparison(Node):
         err_y = ey - dy
         dist = math.hypot(err_x, err_y)
 
-        if dist > 0.3:
-            # Chase: velocity proportional to error, capped
-            speed = min(dist * 0.8, self.MAX_VEL)
-            vx = speed * err_x / dist
-            vy = speed * err_y / dist
-            # Map NED velocity to pitch/roll (pitch=forward=+X, roll=right=+Y)
-            self._send_vel(pitch=vx / self.MAX_VEL,
-                           roll=vy / self.MAX_VEL,
-                           thrust=0.0)
-        else:
-            # Close enough: plunge
-            self._send_vel(pitch=0.0, roll=0.0,
-                           thrust=-self.BLIND_PLUNGE_VZ)
-            alt = -self.local_pos.z
-            if alt < 0.15:
-                self.get_logger().info('TOUCHDOWN (STATIC)')
-                self._record_kpi()
-                self._send_cmd('land')
-                self._transition(MissionState.DONE)
+        # Horizontal Tracking (Always active)
+        # Chase: velocity proportional to error, capped at MAX_VEL
+        # We increase the gain to 1.2 for the blind phase to ensure snappy tracking
+        pitch_cmd = max(-1.0, min(1.0, (err_x * 1.2) / self.MAX_VEL))
+        roll_cmd  = max(-1.0, min(1.0, (err_y * 1.2) / self.MAX_VEL))
+
+        # Vertical Trigger
+        if dist < 0.2:   # Relaxed slightly to 0.2m for better reliability
+            self.blind_plunge_active = True
+
+        vz = self.BLIND_PLUNGE_VZ if self.blind_plunge_active else 0.0
+
+        self._send_vel(pitch=pitch_cmd, roll=roll_cmd, thrust=vz)
+
+        # Touchdown check
+        alt = -self.local_pos.z
+        if alt < 0.3:
+            self.get_logger().info('TOUCHDOWN (STATIC) – predicted intercept')
+            self._record_kpi()
+            self._send_cmd('land')
+            self._transition(MissionState.DONE)
 
     # ── Mode B: Gimbal slant landing ──────────────────────────────────
     def _execute_slant_landing(self):
@@ -434,18 +435,19 @@ class MissionComparison(Node):
         """
         dt_sweep = time.monotonic() - self.terminal_start
         frac = min(dt_sweep / self.SLANT_SWEEP_TIME, 1.0)
-        target_pitch = 45.0 + frac * 45.0   # 45 → 90
+        target_pitch = 45.0 - frac * 45.0   # 45 → 0 (Straight Down)
         self._set_gimbal(target_pitch)
 
-        # Active visual servoing during sweep
-        self._track_target()
+        # Active visual servoing
+        # Wait 1s after sweep completes before descending
+        vz = 0.5 if dt_sweep > (self.SLANT_SWEEP_TIME + 1.0) else 0.0
+        self._track_target(descend_rate=vz)
 
-        # Check touchdown condition: gimbal at 90° and error small
-        if target_pitch >= 89.5:
-            err_mag = math.hypot(self.pixel_err_x, self.pixel_err_y)
+        # Check touchdown condition: gimbal at 0° and altitude low
+        if dt_sweep > (self.SLANT_SWEEP_TIME + 1.0):
             alt = -self.local_pos.z
-            if err_mag < 0.15 or alt < 0.15:
-                self.get_logger().info('TOUCHDOWN (GIMBAL) – direct overhead')
+            if alt < 0.3:
+                self.get_logger().info('TOUCHDOWN (GIMBAL) – target reached')
                 self._record_kpi()
                 self._send_cmd('land')
                 self._transition(MissionState.DONE)
