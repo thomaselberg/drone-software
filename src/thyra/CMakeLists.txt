@@ -79,6 +79,10 @@ install(PROGRAMS
   script/gimbal.py
   script/mission_zero.py
   script/synthetic_camera_sim.py
+  script/synthetic_cam_comparison.py
+  script/aruco_detector_comparison.py
+  script/mission_comparison.py
+  script/wind_gust_generator.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
