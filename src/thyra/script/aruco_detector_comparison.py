@@ -80,7 +80,8 @@ class ArucoDetectorComparison(Node):
         self.drone_att = list(msg.orientation)
 
     def _gimbal_cb(self, msg: Float64):
-        self.gimbal_pitch = math.radians(msg.data)
+        # Map normalized -1.0 (Down) to +90 deg (pi/2) and 0.0 (Forward) to 0 deg
+        self.gimbal_pitch = -msg.data * (math.pi / 2.0)
 
     def _to_ground(self, u, v, alt):
         """Project pixel (u,v) to ground plane NED meters relative to drone."""

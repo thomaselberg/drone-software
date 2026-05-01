@@ -147,8 +147,8 @@ class MissionComparison(Node):
         self.one_shot_time  = None
 
         # Mode B gimbal state
-        self.gimbal_angle_deg = 45.0
-        self.terminal_start   = None
+        self.gimbal_angle_norm = -0.5
+        self.terminal_start    = None
 
         # Latest true target state (for KPI at touchdown)
         self.latest_truth = None
@@ -236,10 +236,10 @@ class MissionComparison(Node):
         self.pub_manual.publish(msg)
 
     # ── Gimbal command helper ─────────────────────────────────────────
-    def _set_gimbal(self, deg):
-        self.gimbal_angle_deg = deg
+    def _set_gimbal(self, val):
+        self.gimbal_angle_norm = val
         msg = Float64()
-        msg.data = deg
+        msg.data = float(val)
         self.pub_gimbal.publish(msg)
 
     # ── Elapsed time in current state ─────────────────────────────────
@@ -334,7 +334,7 @@ class MissionComparison(Node):
             if alt >= self.TAKEOFF_ALT - 0.5:
                 self.get_logger().info(f'Alt {alt:.1f}m reached → SEARCH')
                 self._send_cmd('manual_aided')
-                self._set_gimbal(45.0)
+                self._set_gimbal(-0.5) # Normalized: 45 deg
                 self._transition(MissionState.SEARCH)
 
         elif self.state == MissionState.SEARCH:
@@ -444,8 +444,8 @@ class MissionComparison(Node):
         """
         dt_sweep = time.monotonic() - self.terminal_start
         frac = min(dt_sweep / self.SLANT_SWEEP_TIME, 1.0)
-        target_pitch = 45.0 + frac * 45.0   # 45 → 90 (Straight Down)
-        self._set_gimbal(target_pitch)
+        target_val = -0.5 - frac * 0.5   # -0.5 (45°) → -1.0 (Straight Down)
+        self._set_gimbal(target_val)
 
         # Active visual servoing
         # Wait 1s after sweep completes before descending

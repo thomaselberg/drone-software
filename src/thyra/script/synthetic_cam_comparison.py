@@ -89,7 +89,8 @@ class SyntheticComparisonCam(Node):
         self.att = list(msg.orientation)
 
     def _gimbal_cb(self, msg: Float64):
-        self.gimbal_pitch_override = math.radians(msg.data)
+        # Map normalized -1.0 (Down) to +90 deg (pi/2) and 0.0 (Forward) to 0 deg
+        self.gimbal_pitch_override = -msg.data * (math.pi / 2.0)
 
     def _rot(self, r, p, y):
         cr, sr = math.cos(r), math.sin(r)
