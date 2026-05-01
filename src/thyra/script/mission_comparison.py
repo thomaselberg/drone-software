@@ -78,10 +78,12 @@ class MissionComparison(Node):
 
         # ── Parameters ────────────────────────────────────────────────
         self.declare_parameter('mode', 'GIMBAL')
+        self.declare_parameter('scenario', 'DYNAMIC') # Added: STATIC or DYNAMIC
         self.declare_parameter('wind_scenario', 'none')
         self.declare_parameter('target_start_x', 10.0)
         self.declare_parameter('target_start_y', 0.0)
         self.mode = self.get_parameter('mode').value.upper()
+        self.scenario = self.get_parameter('scenario').value.upper()
         self.wind_scenario = self.get_parameter('wind_scenario').value
         self.target_start_x = self.get_parameter('target_start_x').value
         self.target_start_y = self.get_parameter('target_start_y').value
@@ -106,7 +108,7 @@ class MissionComparison(Node):
         self.pub_heartbeat = self.create_publisher(
             GcsHeartbeat, '/asr/thyra/in/gcs_heartbeat', qos_hb)
         self.pub_gimbal = self.create_publisher(
-            Float64, '/asr/sim/gimbal_pitch_deg', 10)
+            Float64, '/gimbal/cmd_pitch', 10)
 
         # ── Subscribers ───────────────────────────────────────────────
         self.create_subscription(
@@ -336,14 +338,21 @@ class MissionComparison(Node):
                 self._transition(MissionState.SEARCH)
 
         elif self.state == MissionState.SEARCH:
-            # Fly forward searching for ArUco lock
-            # Using 1.0 pitch for max approach speed (~2.1 m/s)
-            self._send_vel(pitch=1.0, yaw_vel=0.0, thrust=0.0)
+            if self.scenario == 'STATIC':
+                # Fly toward target GPS
+                err_x = self.target_start_x - self.drone_state.position[0]
+                err_y = self.target_start_y - self.drone_state.position[1]
+                self._send_vel(pitch=err_x * 0.5, roll=err_y * 0.5, thrust=0.0)
+            else:
+                # DYNAMIC: Hover and wait for target to pass
+                self._send_vel(pitch=0.0, roll=0.0, thrust=0.0)
             
-            # Transition immediately on lock
+            # Transition on lock AND ground error < 1m
             if self.locked:
-                self.get_logger().info('ArUco LOCKED → Immediate DESCEND')
-                self._transition(MissionState.DESCEND_TO_1M)
+                d_ground = math.hypot(self.pixel_err_x, self.pixel_err_y)
+                if d_ground < 1.0:
+                    self.get_logger().info(f'ArUco LOCKED & Ground Err {d_ground:.2f}m < 1m → DESCEND')
+                    self._transition(MissionState.DESCEND_TO_1M)
 
         elif self.state == MissionState.DESCEND_TO_1M:
             alt = -self.local_pos.z
@@ -435,7 +444,7 @@ class MissionComparison(Node):
         """
         dt_sweep = time.monotonic() - self.terminal_start
         frac = min(dt_sweep / self.SLANT_SWEEP_TIME, 1.0)
-        target_pitch = 45.0 - frac * 45.0   # 45 → 0 (Straight Down)
+        target_pitch = 45.0 + frac * 45.0   # 45 → 90 (Straight Down)
         self._set_gimbal(target_pitch)
 
         # Active visual servoing

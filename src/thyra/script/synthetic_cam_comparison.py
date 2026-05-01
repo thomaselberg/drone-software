@@ -45,11 +45,18 @@ class SyntheticComparisonCam(Node):
         self.declare_parameter('width', 640)
         self.declare_parameter('height', 480)
         self.declare_parameter('hfov_deg', 85.0)
+        self.declare_parameter('scenario', 'MOVING') # Added: STATIC or MOVING
 
+        self.scenario = self.get_parameter('scenario').value.upper()
         self.target_x = self.get_parameter('target_start_x').value
         self.target_y = self.get_parameter('target_start_y').value
-        self.vx_max   = self.get_parameter('target_vx_max').value
-        self.vy_max   = self.get_parameter('target_vy_max').value
+        
+        if self.scenario == 'STATIC':
+            self.vx_max = 0.0
+            self.vy_max = 0.0
+        else:
+            self.vx_max   = self.get_parameter('target_vx_max').value
+            self.vy_max   = self.get_parameter('target_vy_max').value
         self.whiteout_interval = self.get_parameter('whiteout_interval_s').value
         self.whiteout_duration = self.get_parameter('whiteout_duration_s').value
         self.mount_pitch = math.radians(self.get_parameter('camera_pitch_deg').value)
@@ -69,10 +76,10 @@ class SyntheticComparisonCam(Node):
         self.grid_extent = 100.0
         self.bridge = CvBridge()
 
-        self.pub_img = self.create_publisher(Image, '/asr/sim/synthetic_camera/image', 10)
+        self.pub_img = self.create_publisher(Image, '/camera/camera/color/image_raw', 10)
         self.pub_truth = self.create_publisher(TwistStamped, '/asr/sim/true_target_state', 10)
         self.create_subscription(DroneState, '/asr/thyra/out/drone_state', self._drone_cb, 10)
-        self.create_subscription(Float64, '/asr/sim/gimbal_pitch_deg', self._gimbal_cb, 10)
+        self.create_subscription(Float64, '/gimbal/cmd_pitch', self._gimbal_cb, 10)
 
         self.timer = self.create_timer(1.0/30.0, self._tick)
         self.get_logger().info(f"Synthetic Camera started (0.4m single marker)")

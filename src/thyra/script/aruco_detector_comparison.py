@@ -66,12 +66,12 @@ class ArucoDetectorComparison(Node):
 
         # Subscribers
         self.create_subscription(
-            Image, '/asr/sim/synthetic_camera/image',
+            Image, '/camera/camera/color/image_raw',
             self._image_cb, qos_profile_sensor_data)
         self.create_subscription(
             DroneState, '/asr/thyra/out/drone_state', self._drone_cb, 10)
         self.create_subscription(
-            Float64, '/asr/sim/gimbal_pitch_deg', self._gimbal_cb, 10)
+            Float64, '/gimbal/cmd_pitch', self._gimbal_cb, 10)
 
         self.get_logger().info('ArUco detector (comparison) started with GROUND PROJECTION')
 

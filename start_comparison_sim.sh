@@ -14,8 +14,17 @@
 # ── Arguments ─────────────────────────────────────────────────────────
 MODE_RAW="${1:-GIMBAL}"
 MODE=$(echo "$MODE_RAW" | tr '[:lower:]' '[:upper:]')
-WIND="${2:-none}"
+SCENARIO_RAW="${2:-DYNAMIC}" # STATIC or DYNAMIC
+SCENARIO=$(echo "$SCENARIO_RAW" | tr '[:lower:]' '[:upper:]')
+WIND="${3:-none}"
 TARGET_DIST="10.0"   # Meters North
+
+# Map DYNAMIC (mission) to MOVING (camera)
+if [ "$SCENARIO" == "DYNAMIC" ]; then
+    CAM_SCENARIO="MOVING"
+else
+    CAM_SCENARIO="STATIC"
+fi
 
 # ── Colors ────────────────────────────────────────────────────────────
 GREEN='\033[0;32m'
@@ -73,6 +82,7 @@ echo -e "${BLUE}>>> [2/5] Launching comparison synthetic camera...${NC}"
 ros2 run thyra synthetic_cam_comparison.py --ros-args \
     -p target_start_x:="${TARGET_DIST}" \
     -p target_start_y:=0.0 \
+    -p scenario:="${CAM_SCENARIO}" \
     -p whiteout_interval_s:=10.0 \
     -p whiteout_duration_s:=0.2 \
     -p camera_pitch_deg:=45.0 &
@@ -108,6 +118,7 @@ done
 echo -e "${GREEN}>>> [5/5] Launching mission_comparison (${MODE}, ${WIND})...${NC}"
 ros2 run thyra mission_comparison.py --ros-args \
     -p mode:="${MODE}" \
+    -p scenario:="${SCENARIO}" \
     -p wind_scenario:="${WIND}" \
     -p target_start_x:="${TARGET_DIST}" \
     -p target_start_y:=0.0 &
