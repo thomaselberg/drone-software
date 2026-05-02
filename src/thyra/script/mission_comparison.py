@@ -53,7 +53,7 @@ class MissionComparison(Node):
     LOCK_LOSS_TIMEOUT = 5.0
     SLANT_SWEEP_TIME  = 5.0
     BLIND_PLUNGE_VZ   = 0.5
-    PID_KP            = 0.8
+    PID_KP            = 0.5
     PID_KD            = 0.0
     DESCEND_VZ        = 0.5
     MAX_VEL           = 1.5   # Must match autopilot max_horizontal_velocity
@@ -275,7 +275,7 @@ class MissionComparison(Node):
             kp = self.PID_KP
 
         # Derivative term (only for STABILIZE_5M)
-        kd = 0.15 if use_derivative else 0.0
+        kd = 0.25 if use_derivative else 0.0
         d_err_fwd = (err_fwd - self.prev_err_x) / dt
         d_err_side = (err_side - self.prev_err_y) / dt
         self.prev_err_x = err_fwd
@@ -375,8 +375,14 @@ class MissionComparison(Node):
             # DYNAMIC only: hold altitude, track with D-term
             thrust = self._alt_hold_thrust(self.TAKEOFF_ALT)
             self._track_target(descend_rate=thrust, use_derivative=True)
-            if elapsed >= self.STABILIZE_TIME:
-                self.get_logger().info('Stable at 5m → DESCEND_TO_1M')
+            d_ground = math.hypot(self.pixel_err_x, self.pixel_err_y)
+            if d_ground < 0.5:
+                self.get_logger().info(
+                    f'Ground err {d_ground:.2f}m < 0.5m → DESCEND_TO_1M')
+                self._transition(MissionState.DESCEND_TO_1M)
+            elif elapsed >= 10.0:
+                self.get_logger().warn(
+                    f'STABILIZE_5M timeout (10s), ground err {d_ground:.2f}m → forcing descent')
                 self._transition(MissionState.DESCEND_TO_1M)
 
         elif self.state == MissionState.DESCEND_TO_1M:
