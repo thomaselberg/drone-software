@@ -79,7 +79,7 @@ class SyntheticComparisonCam(Node):
         self.target_vx = 0.0
         self.target_vy = 0.0
         self.target_heading = 0.0
-        self.pos = [0.0, 0.0, -5.0]
+        self.pos = [0.0, 0.0, 0.0]
         self.att = [0.0, 0.0, 0.0]
         self.gimbal_pitch_override = None
         self.grid_spacing = 5.0
@@ -88,6 +88,7 @@ class SyntheticComparisonCam(Node):
 
         # Altitude trigger for DYNAMIC target
         self.target_started = False
+        self.drone_state_received = False
 
         self.pub_img = self.create_publisher(Image, '/camera/camera/color/image_raw', 10)
         self.pub_truth = self.create_publisher(TwistStamped, '/asr/sim/true_target_state', 10)
@@ -101,6 +102,7 @@ class SyntheticComparisonCam(Node):
     def _drone_cb(self, msg: DroneState):
         self.pos = list(msg.position)
         self.att = list(msg.orientation)
+        self.drone_state_received = True
 
     def _gimbal_cb(self, msg: Float64):
         # -1.0 = Straight Down (0 rad), 0.0 = 45° (π/4), +1.0 = Horizon (π/2)
@@ -130,9 +132,9 @@ class SyntheticComparisonCam(Node):
 
         # 1. Physics — DYNAMIC target movement
         if self.scenario == 'MOVING':
-            # Check altitude trigger
+            # Check altitude trigger — only after first real telemetry
             if not self.target_started:
-                if drone_alt >= 2.0:
+                if self.drone_state_received and drone_alt >= 2.0:
                     self.target_started = True
                     self.get_logger().info(
                         f'TARGET TRIGGERED: Drone crossed 2.0m (alt={drone_alt:.2f}m)')

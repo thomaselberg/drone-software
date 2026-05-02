@@ -8,14 +8,7 @@
 # Usage:
 #   ./start_batch_sim.sh              # run all combos, with recording
 #   ./start_batch_sim.sh --no-record  # skip ffmpeg recording
-#
-#    "STATIC DYNAMIC none"
-#    "GIMBAL DYNAMIC none"
-#    "STATIC STATIC gust2"
-#    "GIMBAL STATIC gust2"
-#    "STATIC DYNAMIC gust2"
-#    "GIMBAL DYNAMIC gust2"
-═══════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════
 
 # ── Configuration ─────────────────────────────────────────────────────
 # Each entry: "MODE SCENARIO WIND"
@@ -55,6 +48,19 @@ echo -e "${CYAN}   ${#BATCH[@]} runs queued                                  ${N
 echo -e "${CYAN}   Summary → ${GREEN}${SUMMARY_FILE}${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════${NC}"
 
+# ── QGroundControl — launch once, keep open for all runs ──────────────
+QGC_APPIMAGE="$HOME/QGroundControl-x86_64.AppImage"
+if [ -f "$QGC_APPIMAGE" ]; then
+    if ! pgrep -f "QGroundControl" > /dev/null 2>&1; then
+        echo -e "${BLUE}>>> Launching QGroundControl (stays open for all runs)...${NC}"
+        chmod +x "$QGC_APPIMAGE"
+        "$QGC_APPIMAGE" > /dev/null 2>&1 &
+        sleep 2
+    else
+        echo -e "${YELLOW}>>> QGroundControl already running — reusing${NC}"
+    fi
+fi
+
 # ── ffmpeg screen recording ───────────────────────────────────────────
 RECORD=true
 if [ "$1" == "--no-record" ]; then
@@ -88,8 +94,8 @@ for ENTRY in "${BATCH[@]}"; do
     # Snapshot existing CSV files before this run
     BEFORE_CSVS=$(ls -1 "$RESULTS_DIR"/*.csv 2>/dev/null | sort)
 
-    # Launch the comparison sim
-    bash "${SCRIPT_DIR}/start_comparison_sim.sh" "$MODE" "$SCENARIO" "$WIND" &
+    # Launch the comparison sim (with --no-qgc flag to skip QGC inside)
+    bash "${SCRIPT_DIR}/start_comparison_sim.sh" "$MODE" "$SCENARIO" "$WIND" --no-qgc &
     SIM_MASTER_PID=$!
 
     # Wait for mission to finish (new CSV appears) or timeout
@@ -124,25 +130,33 @@ for ENTRY in "${BATCH[@]}"; do
         echo -e "${RED}>>> TIMEOUT after ${RUN_TIMEOUT}s — force killing${NC}"
     fi
 
-    # Kill all sim processes
+    # ── Surgical cleanup: only kill mission-specific nodes ────────────
+    # Keep QGC, ROS daemon, and system processes alive
     echo -e "${YELLOW}>>> Cleaning up run ${RUN_NUM}...${NC}"
-    pkill -9 -f MicroXRCEAgent   2>/dev/null
-    pkill -9 -f px4              2>/dev/null
-    pkill -9 -f "gz sim"         2>/dev/null
-    pkill -9 -f "ruby"           2>/dev/null
-    pkill -9 -f "thyra"          2>/dev/null
-    pkill -9 -f "mission"        2>/dev/null
-    pkill -9 -f "synthetic"      2>/dev/null
-    pkill -9 -f "aruco_detector" 2>/dev/null
-    pkill -9 -f "wind_gust"      2>/dev/null
-    pkill -9 -f "python3"        2>/dev/null
+    pkill -f "mission_comparison"        2>/dev/null
+    pkill -f "synthetic_cam_comparison"  2>/dev/null
+    pkill -f "aruco_detector_comparison" 2>/dev/null
+    pkill -f "wind_gust_generator"       2>/dev/null
+    sleep 1
+
+    # Kill the simulation infrastructure (PX4, Gazebo, XRCE agent)
+    # These need to restart for each run
+    pkill -f MicroXRCEAgent   2>/dev/null
+    pkill -f "gz sim"         2>/dev/null
+    pkill -f "ruby"           2>/dev/null
+    # Use SIGTERM first for PX4 (graceful), then SIGKILL after delay
+    pkill -f px4              2>/dev/null
+    sleep 1
+    pkill -9 -f px4           2>/dev/null
+
+    # Kill the ROS launch (thyra_sim.launch.py) — this is the parent
+    pkill -f "thyra_sim.launch" 2>/dev/null
     kill $SIM_MASTER_PID 2>/dev/null
     wait $SIM_MASTER_PID 2>/dev/null
     sleep 3
 
     # Extract KPIs from CSV and append to summary
     if [ -n "$NEW_CSV" ] && [ -f "$NEW_CSV" ]; then
-        # CSV format: mode,scenario,wind_scenario,linear_error_m,rotation_error_deg,engagement_duration_s,...
         DATA_LINE=$(tail -1 "$NEW_CSV")
         LINEAR_ERR=$(echo "$DATA_LINE" | cut -d',' -f4)
         ROT_ERR=$(echo "$DATA_LINE" | cut -d',' -f5)

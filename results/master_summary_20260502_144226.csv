@@ -1,0 +1,3 @@
+run,mode,scenario,wind,linear_error_m,rotation_error_deg,engagement_s,csv_file
+1,STATIC,STATIC,none,TIMEOUT,TIMEOUT,TIMEOUT,N/A
+2,GIMBAL,STATIC,none,TIMEOUT,TIMEOUT,TIMEOUT,N/A

@@ -240,10 +240,11 @@ class MissionComparison(Node):
 
     # ── Altitude hold thrust ──────────────────────────────────────────
     def _alt_hold_thrust(self, target_alt=5.0):
-        """P-controller to hold altitude. Returns thrust value."""
+        """P-controller to hold altitude. Returns thrust value.
+        NED convention: positive thrust = downward, so negate the error."""
         alt = -self.local_pos.z
-        alt_err = target_alt - alt  # positive = too low → climb
-        return self.KP_ALT * alt_err
+        alt_err = target_alt - alt  # positive = too low
+        return -self.KP_ALT * alt_err  # negative thrust = climb
 
     # ── Visual-servoing PD controller ─────────────────────────────────
     def _track_target(self, descend_rate=0.0, use_derivative=False):

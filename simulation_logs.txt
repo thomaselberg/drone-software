@@ -1,10 +1,10 @@
-./start_batch_sim.sh: line 18: ═══════════════════════════════════════════════════════════════════════: command not found
 [0;34m═══════════════════════════════════════════════════════[0m
 [0;36m[1m   BATCH COMPARISON RUNNER                            [0m
 [0;36m   2 runs queued                                  [0m
-[0;36m   Summary → [0;32m/home/elberg/drone-software/results/master_summary_20260502_141444.csv[0m
+[0;36m   Summary → [0;32m/home/elberg/drone-software/results/master_summary_20260502_144226.csv[0m
 [0;34m═══════════════════════════════════════════════════════[0m
-[0;34m>>> Starting screen recording → /home/elberg/drone-software/results/batch_recording_20260502_141444.mp4[0m
+[1;33m>>> QGroundControl already running — reusing[0m
+[0;34m>>> Starting screen recording → /home/elberg/drone-software/results/batch_recording_20260502_144226.mp4[0m
 
 [0;34m═══════════════════════════════════════════════════════[0m
 [0;36m[1m   RUN 1/2: STATIC | STATIC | none[0m
@@ -15,26 +15,75 @@
 [0;36m   Target Spawn: [0;32m10.0m[0m
 [0;34m═══════════════════════════════════════════════════[0m
 [1;33m>>> Cleaning up previous sessions...[0m
-[0;34m>>> Launching QGroundControl...[0m
+[1;33m>>> QGroundControl skipped (--no-qgc)[0m
 [0;34m>>> [1/5] Launching official team simulation...[0m
 [0;34m>>> [2/5] Launching comparison synthetic camera...[0m
 [0;34m>>> [3/5] Launching ArUco detector...[0m
 [1;33m>>> [4/5] Skipping wind gust generator (none)...[0m
 [1;33m>>> Waiting for THYRA OPERATIONAL...[0m
-[INFO] [launch]: All log files can be found below /home/elberg/.ros/log/2026-05-02-14-14-48-425998-space-16392
+[INFO] [launch]: All log files can be found below /home/elberg/.ros/log/2026-05-02-14-42-30-221849-space-26159
 [INFO] [launch]: Default logging verbosity is set to INFO
-[INFO] [bash-1]: process started with pid [16419]
-[INFO] [MicroXRCEAgent-2]: process started with pid [16421]
+[INFO] [bash-1]: process started with pid [26177]
+[INFO] [MicroXRCEAgent-2]: process started with pid [26178]
 [bash-1] bash: -c: option requires an argument
 [bash-1] Trying to cd into: /home/elberg/PX4-Autopilot_thyra
 [bash-1] Now in: /home/elberg/PX4-Autopilot_thyra
 [bash-1] Now running PX4 SITL with Gazebo X500 world
-[INFO] [1777724088.700121496] [synthetic_cam_comparison]: Synthetic Camera started (0.6m marker, scenario=STATIC)
-[INFO] [1777724088.702126938] [aruco_detector_comparison]: ArUco detector (comparison) started with GROUND PROJECTION + YAW
+[INFO] [1777725750.491990752] [aruco_detector_comparison]: ArUco detector (comparison) started with GROUND PROJECTION + YAW
+[INFO] [1777725750.492383041] [synthetic_cam_comparison]: Synthetic Camera started (0.6m marker, scenario=STATIC)
 [1;33m>>> Mission node exited[0m
 [1;33m>>> Cleaning up run 1...[0m
-[ERROR] [MicroXRCEAgent-2]: process has died [pid 16421, exit code -9, cmd 'MicroXRCEAgent udp4 -p 8888'].
-[ERROR] [bash-1]: process has died [pid 16419, exit code -9, cmd 'bash -c 
+Traceback (most recent call last):
+  File "/home/elberg/drone-software/install/thyra/lib/thyra/synthetic_cam_comparison.py", line 275, in <module>
+    main()
+  File "/home/elberg/drone-software/install/thyra/lib/thyra/synthetic_cam_comparison.py", line 270, in main
+    rclpy.spin(node)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/__init__.py", line 247, in spin
+    executor.spin_once()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 923, in spin_once
+    self._spin_once_impl(timeout_sec)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 904, in _spin_once_impl
+    handler, entity, node = self.wait_for_ready_callbacks(
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 874, in wait_for_ready_callbacks
+    return next(self._cb_iter)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 782, in _wait_for_ready_callbacks
+    raise ExternalShutdownException()
+rclpy.executors.ExternalShutdownException
+Traceback (most recent call last):
+  File "/home/elberg/drone-software/install/thyra/lib/thyra/aruco_detector_comparison.py", line 228, in main
+    rclpy.spin(node)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/__init__.py", line 247, in spin
+    executor.spin_once()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 923, in spin_once
+    self._spin_once_impl(timeout_sec)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 904, in _spin_once_impl
+    handler, entity, node = self.wait_for_ready_callbacks(
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 874, in wait_for_ready_callbacks
+    return next(self._cb_iter)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 782, in _wait_for_ready_callbacks
+    raise ExternalShutdownException()
+rclpy.executors.ExternalShutdownException
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/elberg/drone-software/install/thyra/lib/thyra/aruco_detector_comparison.py", line 238, in <module>
+    main()
+  File "/home/elberg/drone-software/install/thyra/lib/thyra/aruco_detector_comparison.py", line 234, in main
+    rclpy.shutdown()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/__init__.py", line 134, in shutdown
+    _shutdown(context=context)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/utilities.py", line 82, in shutdown
+    context.shutdown()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/context.py", line 129, in shutdown
+    self.__context.shutdown()
+rclpy._rclpy_pybind11.RCLError: failed to shutdown: rcl_shutdown already called on the given context, at ./src/rcl/init.c:333
+[ERROR] [MicroXRCEAgent-2]: process has died [pid 26178, exit code -15, cmd 'MicroXRCEAgent udp4 -p 8888'].
+[ERROR] [bash-1]: process has died [pid 26177, exit code -15, cmd 'bash -c 
                 echo "Trying to cd into: /home/elberg/PX4-Autopilot_thyra" &&                 cd /home/elberg/PX4-Autopilot_thyra &&                 echo "Now in: $(pwd)" &&                 export GAZEBO_RESOURCE_PATH=~/PX4-Autopilot_thyra/Tools/simulation/gz/worlds:$GAZEBO_RESOURCE_PATH &&                 echo "Now running PX4 SITL with Gazebo X500 world" &&                 make px4_sitl gz_x500_lidar_down > /dev/null 2>&1
                 '].
 [0;31m  No CSV produced — logged as TIMEOUT[0m
@@ -48,36 +97,85 @@
 [0;36m   Target Spawn: [0;32m10.0m[0m
 [0;34m═══════════════════════════════════════════════════[0m
 [1;33m>>> Cleaning up previous sessions...[0m
-[0;34m>>> Launching QGroundControl...[0m
+[1;33m>>> QGroundControl skipped (--no-qgc)[0m
 [0;34m>>> [1/5] Launching official team simulation...[0m
 [0;34m>>> [2/5] Launching comparison synthetic camera...[0m
 [0;34m>>> [3/5] Launching ArUco detector...[0m
 [1;33m>>> [4/5] Skipping wind gust generator (none)...[0m
 [1;33m>>> Waiting for THYRA OPERATIONAL...[0m
-[INFO] [launch]: All log files can be found below /home/elberg/.ros/log/2026-05-02-14-14-58-633176-space-17247
+[INFO] [launch]: All log files can be found below /home/elberg/.ros/log/2026-05-02-14-42-42-370176-space-26864
 [INFO] [launch]: Default logging verbosity is set to INFO
-[INFO] [bash-1]: process started with pid [17278]
-[INFO] [MicroXRCEAgent-2]: process started with pid [17279]
+[INFO] [bash-1]: process started with pid [26882]
+[INFO] [MicroXRCEAgent-2]: process started with pid [26883]
 [bash-1] bash: -c: option requires an argument
 [bash-1] Trying to cd into: /home/elberg/PX4-Autopilot_thyra
 [bash-1] Now in: /home/elberg/PX4-Autopilot_thyra
 [bash-1] Now running PX4 SITL with Gazebo X500 world
-[INFO] [1777724098.914058433] [synthetic_cam_comparison]: Synthetic Camera started (0.6m marker, scenario=STATIC)
-[INFO] [1777724098.930594068] [aruco_detector_comparison]: ArUco detector (comparison) started with GROUND PROJECTION + YAW
+[INFO] [1777725762.641787886] [synthetic_cam_comparison]: Synthetic Camera started (0.6m marker, scenario=STATIC)
+[INFO] [1777725762.649331513] [aruco_detector_comparison]: ArUco detector (comparison) started with GROUND PROJECTION + YAW
 [1;33m>>> Mission node exited[0m
 [1;33m>>> Cleaning up run 2...[0m
-[ERROR] [MicroXRCEAgent-2]: process has died [pid 17279, exit code -9, cmd 'MicroXRCEAgent udp4 -p 8888'].
-[ERROR] [bash-1]: process has died [pid 17278, exit code -9, cmd 'bash -c 
+Traceback (most recent call last):
+  File "/home/elberg/drone-software/install/thyra/lib/thyra/aruco_detector_comparison.py", line 228, in main
+    rclpy.spin(node)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/__init__.py", line 247, in spin
+    executor.spin_once()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 923, in spin_once
+    self._spin_once_impl(timeout_sec)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 904, in _spin_once_impl
+    handler, entity, node = self.wait_for_ready_callbacks(
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 874, in wait_for_ready_callbacks
+    return next(self._cb_iter)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 782, in _wait_for_ready_callbacks
+    raise ExternalShutdownException()
+rclpy.executors.ExternalShutdownException
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/elberg/drone-software/install/thyra/lib/thyra/aruco_detector_comparison.py", line 238, in <module>
+    main()
+  File "/home/elberg/drone-software/install/thyra/lib/thyra/aruco_detector_comparison.py", line 234, in main
+    rclpy.shutdown()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/__init__.py", line 134, in shutdown
+    _shutdown(context=context)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/utilities.py", line 82, in shutdown
+    context.shutdown()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/context.py", line 129, in shutdown
+    self.__context.shutdown()
+rclpy._rclpy_pybind11.RCLError: failed to shutdown: rcl_shutdown already called on the given context, at ./src/rcl/init.c:333
+Traceback (most recent call last):
+  File "/home/elberg/drone-software/install/thyra/lib/thyra/synthetic_cam_comparison.py", line 275, in <module>
+    main()
+  File "/home/elberg/drone-software/install/thyra/lib/thyra/synthetic_cam_comparison.py", line 270, in main
+    rclpy.spin(node)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/__init__.py", line 247, in spin
+    executor.spin_once()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 923, in spin_once
+    self._spin_once_impl(timeout_sec)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 904, in _spin_once_impl
+    handler, entity, node = self.wait_for_ready_callbacks(
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 874, in wait_for_ready_callbacks
+    return next(self._cb_iter)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 782, in _wait_for_ready_callbacks
+    raise ExternalShutdownException()
+rclpy.executors.ExternalShutdownException
+[ERROR] [MicroXRCEAgent-2]: process has died [pid 26883, exit code -15, cmd 'MicroXRCEAgent udp4 -p 8888'].
+[ERROR] [bash-1]: process has died [pid 26882, exit code -15, cmd 'bash -c 
                 echo "Trying to cd into: /home/elberg/PX4-Autopilot_thyra" &&                 cd /home/elberg/PX4-Autopilot_thyra &&                 echo "Now in: $(pwd)" &&                 export GAZEBO_RESOURCE_PATH=~/PX4-Autopilot_thyra/Tools/simulation/gz/worlds:$GAZEBO_RESOURCE_PATH &&                 echo "Now running PX4 SITL with Gazebo X500 world" &&                 make px4_sitl gz_x500_lidar_down > /dev/null 2>&1
                 '].
 [0;31m  No CSV produced — logged as TIMEOUT[0m
 [0;34m>>> Stopping screen recording...[0m
-[0;32m>>> Recording saved → /home/elberg/drone-software/results/batch_recording_20260502_141444.mp4[0m
+[0;32m>>> Recording saved → /home/elberg/drone-software/results/batch_recording_20260502_144226.mp4[0m
 
 [0;34m═══════════════════════════════════════════════════════[0m
 [0;36m[1m   BATCH COMPLETE — 2 runs finished[0m
-[0;36m   Summary → [0;32m/home/elberg/drone-software/results/master_summary_20260502_141444.csv[0m
-[0;36m   Video   → [0;32m/home/elberg/drone-software/results/batch_recording_20260502_141444.mp4[0m
+[0;36m   Summary → [0;32m/home/elberg/drone-software/results/master_summary_20260502_144226.csv[0m
+[0;36m   Video   → [0;32m/home/elberg/drone-software/results/batch_recording_20260502_144226.mp4[0m
 [0;34m═══════════════════════════════════════════════════════[0m
 
 [1;33mResults:[0m

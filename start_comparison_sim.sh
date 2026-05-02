@@ -70,11 +70,25 @@ cd ~/drone-software
 source install/setup.bash
 
 # ── 3. QGroundControl (optional) ──────────────────────────────────────
+# Skip if --no-qgc flag is passed (used by batch runner)
+SKIP_QGC=false
+for arg in "$@"; do
+    if [ "$arg" == "--no-qgc" ]; then
+        SKIP_QGC=true
+    fi
+done
+
 QGC_APPIMAGE="$HOME/QGroundControl-x86_64.AppImage"
-if [ -f "$QGC_APPIMAGE" ]; then
-    echo -e "${BLUE}>>> Launching QGroundControl...${NC}"
-    chmod +x "$QGC_APPIMAGE"
-    "$QGC_APPIMAGE" > /dev/null 2>&1 &
+if [ "$SKIP_QGC" == "false" ] && [ -f "$QGC_APPIMAGE" ]; then
+    if ! pgrep -f "QGroundControl" > /dev/null 2>&1; then
+        echo -e "${BLUE}>>> Launching QGroundControl...${NC}"
+        chmod +x "$QGC_APPIMAGE"
+        "$QGC_APPIMAGE" > /dev/null 2>&1 &
+    else
+        echo -e "${YELLOW}>>> QGroundControl already running — skipping${NC}"
+    fi
+elif [ "$SKIP_QGC" == "true" ]; then
+    echo -e "${YELLOW}>>> QGroundControl skipped (--no-qgc)${NC}"
 fi
 
 # ── 4. Launch base simulation (team launch) ──────────────────────────
