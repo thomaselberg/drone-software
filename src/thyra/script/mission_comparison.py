@@ -57,7 +57,7 @@ class MissionComparison(Node):
     PID_KD            = 0.0
     DESCEND_VZ        = 0.5
     MAX_VEL           = 1.5   # Must match autopilot max_horizontal_velocity
-    KP_YAW            = 0.01
+    KP_YAW            = 0.02
     KP_ALT            = 0.3
 
     def __init__(self):
@@ -435,21 +435,24 @@ class MissionComparison(Node):
         # Position error
         err_x = ex - dx
         err_y = ey - dy
+        dist = math.hypot(err_x, err_y)
 
         # Feed-forward: normalized target velocity (m/s → [-1, 1])
         ff_pitch = t.angular.x / self.MAX_VEL
         ff_roll  = t.angular.y / self.MAX_VEL
 
         # P-correction on position error (also normalized)
-        p_pitch = (err_x * 0.6) / self.MAX_VEL
-        p_roll  = (err_y * 0.6) / self.MAX_VEL
+        p_pitch = (err_x * 1.0) / self.MAX_VEL
+        p_roll  = (err_y * 1.0) / self.MAX_VEL
 
         # Total = feed-forward + correction, clamped to [-1, 1]
         pitch_cmd = max(-1.0, min(1.0, ff_pitch + p_pitch))
         roll_cmd  = max(-1.0, min(1.0, ff_roll  + p_roll))
 
-        # Always descend during blind landing — no proximity gate needed
-        vz = self.BLIND_PLUNGE_VZ
+        # Only plunge once within 0.2m of the extrapolated position
+        if dist < 0.2:
+            self.blind_plunge_active = True
+        vz = self.BLIND_PLUNGE_VZ if self.blind_plunge_active else 0.0
 
         # Yaw correction using last known relative yaw
         yaw_cmd = self.relative_yaw_deg * self.KP_YAW

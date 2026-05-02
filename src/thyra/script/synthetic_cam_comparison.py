@@ -146,9 +146,9 @@ class SyntheticComparisonCam(Node):
 
                 # Lateral velocity: three overlapping sinusoids with irrational
                 # frequency ratios — smooth but effectively never-repeating
-                vy_raw = (0.50 * math.sin(now * math.pi / 7.0)
-                        + 0.30 * math.sin(now * math.sqrt(2.0) / 3.0)
-                        + 0.20 * math.sin(now * math.e / 11.0))
+                vy_raw = (0.25 * math.sin(now * math.pi / 7.0)
+                        + 0.15 * math.sin(now * math.sqrt(2.0) / 3.0)
+                        + 0.10 * math.sin(now * math.e / 11.0))
 
                 # Clamp lateral to ±0.5 × forward velocity (max ~45° turns)
                 vy_limit = 0.5 * self.target_vx
