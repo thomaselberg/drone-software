@@ -56,7 +56,7 @@ class MissionComparison(Node):
     PID_KP            = 0.8
     PID_KD            = 0.0
     DESCEND_VZ        = 0.5
-    MAX_VEL           = 2.0
+    MAX_VEL           = 1.5   # Must match autopilot max_horizontal_velocity
     KP_YAW            = 0.01
     KP_ALT            = 0.3
 
@@ -415,7 +415,8 @@ class MissionComparison(Node):
     def _execute_blind_landing(self):
         """
         Feed-forward + P-correction blind landing.
-        Command = target_velocity + P * position_error
+        All commands are normalized to [-1, 1] range.
+        Command = (target_velocity / MAX_VEL) + P * (position_error / MAX_VEL)
         """
         if self.one_shot_truth is None:
             return
@@ -434,25 +435,21 @@ class MissionComparison(Node):
         # Position error
         err_x = ex - dx
         err_y = ey - dy
-        dist = math.hypot(err_x, err_y)
 
-        # Feed-forward: match target velocity
-        ff_vx = t.angular.x
-        ff_vy = t.angular.y
+        # Feed-forward: normalized target velocity (m/s → [-1, 1])
+        ff_pitch = t.angular.x / self.MAX_VEL
+        ff_roll  = t.angular.y / self.MAX_VEL
 
-        # P-correction on position error
-        p_vx = err_x * 1.2
-        p_vy = err_y * 1.2
+        # P-correction on position error (also normalized)
+        p_pitch = (err_x * 0.6) / self.MAX_VEL
+        p_roll  = (err_y * 0.6) / self.MAX_VEL
 
-        # Total = feed-forward + correction
-        pitch_cmd = max(-1.0, min(1.0, (ff_vx + p_vx) / self.MAX_VEL))
-        roll_cmd  = max(-1.0, min(1.0, (ff_vy + p_vy) / self.MAX_VEL))
+        # Total = feed-forward + correction, clamped to [-1, 1]
+        pitch_cmd = max(-1.0, min(1.0, ff_pitch + p_pitch))
+        roll_cmd  = max(-1.0, min(1.0, ff_roll  + p_roll))
 
-        # Vertical trigger
-        if dist < 0.2:
-            self.blind_plunge_active = True
-
-        vz = self.BLIND_PLUNGE_VZ if self.blind_plunge_active else 0.0
+        # Always descend during blind landing — no proximity gate needed
+        vz = self.BLIND_PLUNGE_VZ
 
         # Yaw correction using last known relative yaw
         yaw_cmd = self.relative_yaw_deg * self.KP_YAW

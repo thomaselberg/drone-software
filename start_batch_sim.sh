@@ -2,12 +2,11 @@
 # ═══════════════════════════════════════════════════════════════════════
 # start_batch_sim.sh
 # ═══════════════════════════════════════════════════════════════════════
-# Runs multiple comparison simulations back-to-back with optional
-# full-screen ffmpeg recording and a master summary CSV.
+# Runs multiple comparison simulations back-to-back.
+# All simulation logic is consolidated here (no background sub-scripts).
 #
 # Usage:
-#   ./start_batch_sim.sh              # run all combos, with recording
-#   ./start_batch_sim.sh --no-record  # skip ffmpeg recording
+#   ./start_batch_sim.sh
 # ═══════════════════════════════════════════════════════════════════════
 
 # ── Configuration ─────────────────────────────────────────────────────
@@ -15,6 +14,8 @@
 BATCH=(
     "STATIC STATIC none"
     "GIMBAL STATIC none"
+    "STATIC DYNAMIC none"
+    "GIMBAL DYNAMIC none"
 )
 
 # Timeout per run (seconds) — force-kill if mission doesn't finish
@@ -31,7 +32,6 @@ NC='\033[0m'
 
 # ── Setup ─────────────────────────────────────────────────────────────
 export DISPLAY=${DISPLAY:-:1}
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RESULTS_DIR="$HOME/drone-software/results"
 mkdir -p "$RESULTS_DIR"
 
@@ -48,6 +48,11 @@ echo -e "${CYAN}   ${#BATCH[@]} runs queued                                  ${N
 echo -e "${CYAN}   Summary → ${GREEN}${SUMMARY_FILE}${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════${NC}"
 
+# ── Source ROS environment once ───────────────────────────────────────
+source /opt/ros/jazzy/setup.bash
+cd ~/drone-software
+source install/setup.bash
+
 # ── QGroundControl — launch once, keep open for all runs ──────────────
 QGC_APPIMAGE="$HOME/QGroundControl-x86_64.AppImage"
 if [ -f "$QGC_APPIMAGE" ]; then
@@ -61,23 +66,6 @@ if [ -f "$QGC_APPIMAGE" ]; then
     fi
 fi
 
-# ── ffmpeg screen recording ───────────────────────────────────────────
-RECORD=true
-if [ "$1" == "--no-record" ]; then
-    RECORD=false
-fi
-
-FFMPEG_PID=""
-if $RECORD; then
-    RECORDING_FILE="${RESULTS_DIR}/batch_recording_${TIMESTAMP}.mp4"
-    echo -e "${BLUE}>>> Starting screen recording → ${RECORDING_FILE}${NC}"
-    ffmpeg -video_size 1920x1080 -framerate 10 -f x11grab -i :1 \
-           -c:v libx264 -preset ultrafast -crf 30 \
-           -y "$RECORDING_FILE" > /dev/null 2>&1 &
-    FFMPEG_PID=$!
-    sleep 1
-fi
-
 # ── Batch loop ────────────────────────────────────────────────────────
 RUN_NUM=0
 TOTAL=${#BATCH[@]}
@@ -86,19 +74,118 @@ for ENTRY in "${BATCH[@]}"; do
     RUN_NUM=$((RUN_NUM + 1))
     read -r MODE SCENARIO WIND <<< "$ENTRY"
 
+    # ── Scenario-dependent target spawn ──────────────────────────────
+    if [ "$SCENARIO" == "DYNAMIC" ]; then
+        TARGET_DIST="-1.0"
+        CAM_SCENARIO="MOVING"
+    else
+        TARGET_DIST="10.0"
+        CAM_SCENARIO="STATIC"
+    fi
+
     echo ""
     echo -e "${BLUE}═══════════════════════════════════════════════════════${NC}"
     echo -e "${CYAN}${BOLD}   RUN ${RUN_NUM}/${TOTAL}: ${MODE} | ${SCENARIO} | ${WIND}${NC}"
+    echo -e "${CYAN}   Target Spawn: ${TARGET_DIST}m${NC}"
     echo -e "${BLUE}═══════════════════════════════════════════════════════${NC}"
 
-    # Snapshot existing CSV files before this run
+    # ── 1. Cleanup previous run (surgical — keep QGC alive) ──────────
+    echo -e "${YELLOW}>>> Cleaning up previous sessions...${NC}"
+    pkill -f "mission_comparison"        2>/dev/null
+    pkill -f "synthetic_cam_comparison"  2>/dev/null
+    pkill -f "aruco_detector_comparison" 2>/dev/null
+    pkill -f "wind_gust_generator"       2>/dev/null
+    pkill -f "thyra_sim.launch"          2>/dev/null
+    sleep 1
+    pkill -f MicroXRCEAgent   2>/dev/null
+    pkill -f "gz sim"         2>/dev/null
+    pkill -f "ruby"           2>/dev/null
+    pkill -f px4              2>/dev/null
+    sleep 1
+    pkill -9 -f px4           2>/dev/null
+    sleep 2
+
+    rm -f /tmp/sim_output_comparison.log
+
+    # ── 2. Launch base simulation ────────────────────────────────────
+    echo -e "${BLUE}>>> [1/5] Launching simulation...${NC}"
+    ros2 launch thyra thyra_sim.launch.py 2>&1 | tee /tmp/sim_output_comparison.log &
+    SIM_PID=$!
+
+    # ── 3. Launch Synthetic Camera ───────────────────────────────────
+    echo -e "${BLUE}>>> [2/5] Launching synthetic camera...${NC}"
+    ros2 run thyra synthetic_cam_comparison.py --ros-args \
+        -p target_start_x:="${TARGET_DIST}" \
+        -p target_start_y:=0.0 \
+        -p scenario:="${CAM_SCENARIO}" \
+        -p marker_size_m:=0.6 \
+        -p whiteout_interval_s:=10.0 \
+        -p whiteout_duration_s:=0.2 \
+        -p camera_pitch_deg:=45.0 &
+    CAM_PID=$!
+
+    # ── 4. Launch ArUco Detector ─────────────────────────────────────
+    echo -e "${BLUE}>>> [3/5] Launching ArUco detector...${NC}"
+    ros2 run thyra aruco_detector_comparison.py &
+    DET_PID=$!
+
+    # ── 5. Launch Wind Gust Generator ────────────────────────────────
+    WIND_PID=""
+    if [ "$WIND" != "none" ]; then
+        echo -e "${BLUE}>>> [4/5] Launching wind gust generator (${WIND})...${NC}"
+        ros2 run thyra wind_gust_generator.py --ros-args \
+            -p scenario:="${WIND}" &
+        WIND_PID=$!
+    else
+        echo -e "${YELLOW}>>> [4/5] Skipping wind gust generator (none)...${NC}"
+    fi
+
+    # ── 6. Wait for autopilot readiness ──────────────────────────────
+    echo -e "${YELLOW}>>> Waiting for THYRA OPERATIONAL...${NC}"
+    WAIT_COUNT=0
+    while true; do
+        if grep -q "THYRA OPERATIONAL" /tmp/sim_output_comparison.log 2>/dev/null; then
+            echo -e "${GREEN}>>> Autopilot Ready!${NC}"
+            break
+        fi
+        WAIT_COUNT=$((WAIT_COUNT + 1))
+        if [ $WAIT_COUNT -ge 120 ]; then
+            echo -e "${RED}>>> Autopilot did not start in 120s — skipping run${NC}"
+            break
+        fi
+        sleep 1
+    done
+
+    if [ $WAIT_COUNT -ge 120 ]; then
+        echo "${RUN_NUM},${MODE},${SCENARIO},${WIND},STARTUP_FAIL,STARTUP_FAIL,STARTUP_FAIL,N/A" \
+            >> "$SUMMARY_FILE"
+        continue
+    fi
+
+    # ── 7. Launch Mission Controller ─────────────────────────────────
+    # Snapshot existing CSV files BEFORE launching mission
     BEFORE_CSVS=$(ls -1 "$RESULTS_DIR"/*.csv 2>/dev/null | sort)
 
-    # Launch the comparison sim (with --no-qgc flag to skip QGC inside)
-    bash "${SCRIPT_DIR}/start_comparison_sim.sh" "$MODE" "$SCENARIO" "$WIND" --no-qgc &
-    SIM_MASTER_PID=$!
+    echo -e "${GREEN}>>> [5/5] Launching mission (${MODE}, ${SCENARIO}, ${WIND})...${NC}"
+    ros2 run thyra mission_comparison.py --ros-args \
+        -p mode:="${MODE}" \
+        -p scenario:="${SCENARIO}" \
+        -p wind_scenario:="${WIND}" \
+        -p target_start_x:="${TARGET_DIST}" \
+        -p target_start_y:=0.0 &
+    MISSION_PID=$!
 
-    # Wait for mission to finish (new CSV appears) or timeout
+    # ── 8. Wait for mission node to appear ───────────────────────────
+    echo -e "${YELLOW}>>> Waiting for mission node to start...${NC}"
+    for i in $(seq 1 30); do
+        if pgrep -f "mission_comparison" > /dev/null 2>&1; then
+            echo -e "${GREEN}>>> Mission node running (PID: $(pgrep -f mission_comparison | head -1))${NC}"
+            break
+        fi
+        sleep 1
+    done
+
+    # ── 9. Monitor mission until CSV or timeout ──────────────────────
     ELAPSED=0
     NEW_CSV=""
     while [ $ELAPSED -lt $RUN_TIMEOUT ]; do
@@ -111,15 +198,14 @@ for ENTRY in "${BATCH[@]}"; do
 
         if [ -n "$NEW_CSV" ]; then
             echo -e "${GREEN}>>> CSV detected: $(basename "$NEW_CSV")${NC}"
-            sleep 5  # Grace period for clean shutdown
+            sleep 3  # Grace period
             break
         fi
 
-        # Also check if mission node exited
+        # Check if mission node has exited (only after it was confirmed running)
         if ! pgrep -f "mission_comparison" > /dev/null 2>&1; then
             echo -e "${YELLOW}>>> Mission node exited${NC}"
             sleep 2
-            # Re-check for CSV
             AFTER_CSVS=$(ls -1 "$RESULTS_DIR"/*.csv 2>/dev/null | sort)
             NEW_CSV=$(comm -13 <(echo "$BEFORE_CSVS") <(echo "$AFTER_CSVS") | grep -v "master_summary" | head -1)
             break
@@ -130,32 +216,7 @@ for ENTRY in "${BATCH[@]}"; do
         echo -e "${RED}>>> TIMEOUT after ${RUN_TIMEOUT}s — force killing${NC}"
     fi
 
-    # ── Surgical cleanup: only kill mission-specific nodes ────────────
-    # Keep QGC, ROS daemon, and system processes alive
-    echo -e "${YELLOW}>>> Cleaning up run ${RUN_NUM}...${NC}"
-    pkill -f "mission_comparison"        2>/dev/null
-    pkill -f "synthetic_cam_comparison"  2>/dev/null
-    pkill -f "aruco_detector_comparison" 2>/dev/null
-    pkill -f "wind_gust_generator"       2>/dev/null
-    sleep 1
-
-    # Kill the simulation infrastructure (PX4, Gazebo, XRCE agent)
-    # These need to restart for each run
-    pkill -f MicroXRCEAgent   2>/dev/null
-    pkill -f "gz sim"         2>/dev/null
-    pkill -f "ruby"           2>/dev/null
-    # Use SIGTERM first for PX4 (graceful), then SIGKILL after delay
-    pkill -f px4              2>/dev/null
-    sleep 1
-    pkill -9 -f px4           2>/dev/null
-
-    # Kill the ROS launch (thyra_sim.launch.py) — this is the parent
-    pkill -f "thyra_sim.launch" 2>/dev/null
-    kill $SIM_MASTER_PID 2>/dev/null
-    wait $SIM_MASTER_PID 2>/dev/null
-    sleep 3
-
-    # Extract KPIs from CSV and append to summary
+    # ── 10. Extract KPIs from CSV and append to summary ──────────────
     if [ -n "$NEW_CSV" ] && [ -f "$NEW_CSV" ]; then
         DATA_LINE=$(tail -1 "$NEW_CSV")
         LINEAR_ERR=$(echo "$DATA_LINE" | cut -d',' -f4)
@@ -173,22 +234,26 @@ for ENTRY in "${BATCH[@]}"; do
     fi
 done
 
-# ── Stop ffmpeg ───────────────────────────────────────────────────────
-if [ -n "$FFMPEG_PID" ]; then
-    echo -e "${BLUE}>>> Stopping screen recording...${NC}"
-    kill -INT $FFMPEG_PID 2>/dev/null
-    wait $FFMPEG_PID 2>/dev/null
-    echo -e "${GREEN}>>> Recording saved → ${RECORDING_FILE}${NC}"
-fi
+# ── Final cleanup ─────────────────────────────────────────────────────
+echo -e "${YELLOW}>>> Final cleanup...${NC}"
+pkill -f "mission_comparison"        2>/dev/null
+pkill -f "synthetic_cam_comparison"  2>/dev/null
+pkill -f "aruco_detector_comparison" 2>/dev/null
+pkill -f "wind_gust_generator"       2>/dev/null
+pkill -f "thyra_sim.launch"          2>/dev/null
+sleep 1
+pkill -f MicroXRCEAgent   2>/dev/null
+pkill -f "gz sim"         2>/dev/null
+pkill -f "ruby"           2>/dev/null
+pkill -f px4              2>/dev/null
+sleep 1
+pkill -9 -f px4           2>/dev/null
 
 # ── Final summary ────────────────────────────────────────────────────
 echo ""
 echo -e "${BLUE}═══════════════════════════════════════════════════════${NC}"
 echo -e "${CYAN}${BOLD}   BATCH COMPLETE — ${TOTAL} runs finished${NC}"
 echo -e "${CYAN}   Summary → ${GREEN}${SUMMARY_FILE}${NC}"
-if $RECORD; then
-    echo -e "${CYAN}   Video   → ${GREEN}${RECORDING_FILE}${NC}"
-fi
 echo -e "${BLUE}═══════════════════════════════════════════════════════${NC}"
 echo ""
 echo -e "${YELLOW}Results:${NC}"
