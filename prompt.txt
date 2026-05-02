@@ -1,0 +1,90 @@
+I want the following changes to these specific files:
+existing files:
+start_comparison_sim.sh
+src/thyra/script/aruco_detector_comparison.py
+src/thyra/script/mission_comparison.py
+src/thyra/script/synthetic_cam_comparison.py
+src/thyra/script/synthetic_camera_sim.py
+
+new files:
+start_batch_sim.sh
+
+Changes:
+
+Target velocity in DYNAMIC scenario
+North velocity: (sin + 1.0) * (vx_max / 2.0) → always in [0, vx_max] (use vx_max=0.5), never goes backwards
+Lateral velocity: Three overlapping sinusoids with irrational frequency ratios (π/7, √2/3, e/11) weighted 50/30/20% — the pattern is perfectly smooth but effectively never repeats, so the drone can't "predict" the lateral drift
+(and the lateral velocity being capped to maximum 0.5 times the forward velocity at any time - to prevent "larger than 45 degree turns")
+
+can you please double check that the synthetic cam is drawing the aruco marker such that the direction of the aruco marker aligns with the instantaneous velocity vector of the target?
+And that the aruco detector node both captures the "alignment error in degrees from aruco marker forward direction and drone forward direction" and the linear ground error in meters - the one used to center the target. It is important that those are indeed separate such that the drone is keeping the target centered while approaching but also aligns with yaw such that the angular error is small at touchdown. It is very important that the front of the aruco marker is actually the front - the drawer and the detector must agree on which is the forward direction of the marker.  Looking straight down, the ArUco pattern's "top" points (TL and TR) forward (in the velocity direction). Previously the pattern was drawn rotated 90° sideways.
+potential fix:
+Replace the raw pixel-space atan2 with ground-projected heading:
+Projects midpoints of bottom edge (BR/BL) and top edge (TL/TR) to the ground plane
+Computes the world-frame forward vector (bottom→top)
+Subtracts drone yaw → gives relative yaw error in degrees
+This is distortion-free at any gimbal angle
+
+Add KP_YAW = 0.01 proportional controller:
+_track_target(): Feeds relative_yaw_deg × KP_YAW into yaw_vel — covers DESCEND, STABILIZE_1M, and GIMBAL terminal landing
+_execute_blind_landing(): Same yaw correction using last known relative yaw
+10° error → gentle 0.1 yaw rate, 90° → strong 0.9 yaw rate
+
+The csv file with kpi's should be saved either when altitude gets below 0.4m or when the "control loop stops" which is pasted in the log so it can probably be used as a trigger to save the kpi's?
+
+The proportional gain in the initial descend to 1m altitude should be 0.4 and there should be a change to kp=1 when below 3 meters altitude
+
+In DYNAMIC scenario, there must be a altitude p control that makes sure the drone does not drop after the switch to manual_aided mode. It should keep at that 5m altitude
+
+The size of the marker should be 0.6m
+
+The Dynamic target should spawn at 1m south
+the static target should spawn at 10m north
+
+synchronize the synthetic camera drawing to match the real hardware convention:
+-1.0 = Straight Down ($0$ rad in _rot)
+0.0 = 45° Slant ($\pi/4$ rad in _rot)
++1.0 = Horizon ($\pi/2$ rad in _rot)
+
+The dynamic target must wait for the drone to cross 2.0m altitude to trigger its start. Once triggered, it moves indefinitely.
+
+The transition from SEARCH to DESCEND now triggers at a 3.0m ground error (instead of 1.0m)
+
+re-enable the derivative term (PID_KD = 0.15) in the stabilize 5m state. This helps the drone lead the target and prevents the "yanking backward" behavior by anticipating the target's forward velocity vector. The stabilize 5m state is only used in dynamic target scenario. In the static target scenario, the drone should skip that phase and directly go to descend.
+
+feed forward in the blind landing: In the STATIC-camera blind-landing phase, the drone must use the target's actual velocity captured during the "one-shot" lock:
+Lag Elimination: Instead of just chasing the error (which always leaves a lag), the command should be: Target Velocity + P-Correction.
+Result: The drone will "zip" to match the target's speed immediately, keeping the error near zero during the final plunge.
+
+i am thinking a dual sh setup - the current one and a new one that runs batches of comparisons.
+I am specifically thinking:
+copying the mission script, incorporating the idle state and renaming the copy to mission_comparison_batch
+with a sh file called _batch aswell where i will make an array of commands for example:
+[static static none, gimbal static none, static static gust2, and so on]
+And it should just be able to do that in a single command and start running them one after the other. Perhaps i would want that batch sh script to record the whole thing with ffmpeg (if that makes sense? can it record the whole screen with multiple windows?)
+I recommend keeping the mission script as it is (one mission per execution) and using the .sh script to handle the loop. This keeps the logic clean. The .sh script can launch the mission, wait for it to finish (exit), and then immediately start the next one.
+Logging: We can have the batch script create a master summary file that collects the "Distance Error" from every CSV generated in the run.
+
+./start_comparison_sim.sh GIMBAL DYNAMIC gust1 2>&1 | tee simulation_logs.txt
+colcon build --symlink-install --packages-select thyra
+source install/setup.bash
+
+1. Dynamic Target "Instant Start"
+Problem: In synthetic_cam_comparison.py, the drone's position is initialized to [0, 0, -5.0]. Since $Z$ is positive-down (NED), -5.0 is interpreted as an altitude of 5 meters. The target trigger checks if altitude >= 2.0, which evaluates to True the moment the script starts, before the first actual drone telemetry is received.
+Solution: Initialize self.pos to [0, 0, 0] or add a flag to ensure the target only triggers after the first valid DroneState message is received and the altitude truly crosses the 2m threshold.
+
+2. Reversed Altitude Hold (Downward Flight)
+Problem: The altitude P-controller in mission_comparison.py calculates thrust = KP_ALT * (target_alt - current_alt). In the thyra manual interface, positive thrust values map to downward velocity (NED $V_z$). When the drone is below the 5m target, it generates a positive command, driving the drone into the ground.
+Solution: Reverse the sign of the thrust command: thrust = -self.KP_ALT * (5.0 - current_alt).
+
+3. Aggressive Process Cleanup (Exit Code -9)
+Problem: The start_batch_sim.sh script uses pkill -9 -f "python3". This kills all Python processes, including the ROS 2 daemon, middleware components, and the launch system itself. This causes the "Process has died" errors and can leave the environment in a broken state for subsequent runs.
+Solution: Use more "surgical" pkill commands that target only specific node names (e.g., pkill -f mission_comparison) rather than the entire Python interpreter. It makes sense to keep as much open as possible and only restart the necessary scripts for the next simulation in the batch simulation "sequence".
+
+4. QGroundControl Modal Conflicts
+Problem: start_comparison_sim.sh attempts to launch QGroundControl at the start of every run. QGC has a "are your sure you want to stop the application..." thing which makes an error when the batch sh script tries to open a new one - then it just displays an error message instead of connecting to the simulation drone.
+Solution: Move the QGC launch logic out of the simulation script and into the batch runner's setup phase, such that it stays open between simulation runs (if that is possible).
+
+5. Batch Script Timeouts
+Problem: The TIMEOUT and No CSV produced errors in the batch runner are a direct consequence of Issue #2. The drone crashes into the ground immediately, never completes its mission, and never triggers the _record_kpi() function.
+Solution: Fixing the altitude hold and target trigger will allow the drone to complete the mission, save the CSV, and allow the batch script to proceed normally.

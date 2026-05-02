@@ -5,19 +5,24 @@
 # Launches the Fair Comparison scenario (separate from Mission 0).
 #
 # Usage:
-#   ./start_comparison_sim.sh              # defaults: GIMBAL, gust1
-#   ./start_comparison_sim.sh STATIC gust2
-#   ./start_comparison_sim.sh GIMBAL gust3
+#   ./start_comparison_sim.sh              # defaults: GIMBAL, DYNAMIC, none
+#   ./start_comparison_sim.sh STATIC STATIC none
+#   ./start_comparison_sim.sh GIMBAL DYNAMIC gust2
 # ═══════════════════════════════════════════════════════════════════════
 
-# ── Arguments ─────────────────────────────────────────────────────────
 # ── Arguments ─────────────────────────────────────────────────────────
 MODE_RAW="${1:-GIMBAL}"
 MODE=$(echo "$MODE_RAW" | tr '[:lower:]' '[:upper:]')
 SCENARIO_RAW="${2:-DYNAMIC}" # STATIC or DYNAMIC
 SCENARIO=$(echo "$SCENARIO_RAW" | tr '[:lower:]' '[:upper:]')
 WIND="${3:-none}"
-TARGET_DIST="10.0"   # Meters North
+
+# ── Scenario-dependent target spawn ──────────────────────────────────
+if [ "$SCENARIO" == "DYNAMIC" ]; then
+    TARGET_DIST="-1.0"    # 1m South (NED: negative X = South)
+else
+    TARGET_DIST="10.0"    # 10m North
+fi
 
 # Map DYNAMIC (mission) to MOVING (camera)
 if [ "$SCENARIO" == "DYNAMIC" ]; then
@@ -39,8 +44,8 @@ export DISPLAY=${DISPLAY:-:1}
 
 echo -e "${BLUE}═══════════════════════════════════════════════════${NC}"
 echo -e "${CYAN}   FAIR COMPARISON SIMULATION                     ${NC}"
-echo -e "${CYAN}   Mode: ${GREEN}${MODE}${CYAN}   Wind: ${GREEN}${WIND}${NC}"
-echo -e "${CYAN}   Target Distance: ${GREEN}${TARGET_DIST}m${NC}"
+echo -e "${CYAN}   Mode: ${GREEN}${MODE}${CYAN}   Scenario: ${GREEN}${SCENARIO}${CYAN}   Wind: ${GREEN}${WIND}${NC}"
+echo -e "${CYAN}   Target Spawn: ${GREEN}${TARGET_DIST}m${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════${NC}"
 
 # ── 1. Cleanup ────────────────────────────────────────────────────────
@@ -83,6 +88,7 @@ ros2 run thyra synthetic_cam_comparison.py --ros-args \
     -p target_start_x:="${TARGET_DIST}" \
     -p target_start_y:=0.0 \
     -p scenario:="${CAM_SCENARIO}" \
+    -p marker_size_m:=0.6 \
     -p whiteout_interval_s:=10.0 \
     -p whiteout_duration_s:=0.2 \
     -p camera_pitch_deg:=45.0 &
@@ -115,7 +121,7 @@ while true; do
 done
 
 # ── 9. Launch Mission Controller ─────────────────────────────────────
-echo -e "${GREEN}>>> [5/5] Launching mission_comparison (${MODE}, ${WIND})...${NC}"
+echo -e "${GREEN}>>> [5/5] Launching mission_comparison (${MODE}, ${SCENARIO}, ${WIND})...${NC}"
 ros2 run thyra mission_comparison.py --ros-args \
     -p mode:="${MODE}" \
     -p scenario:="${SCENARIO}" \

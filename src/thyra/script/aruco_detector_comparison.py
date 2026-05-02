@@ -7,13 +7,26 @@ ArUco detection node for the fair comparison scenario.
 Responsibility:
   1. Subscribe to the synthetic camera image feed.
   2. Detect ArUco marker (ID 0, DICT_6X6_50).
-  3. Compute normalized pixel error ([-1, 1] range).
-  4. Estimate relative yaw from marker corner geometry.
+  3. Compute ground-projected linear error in meters (for target centering).
+  4. Compute ground-projected relative yaw in degrees (for heading alignment).
   5. Publish detection result as a Vector3Stamped:
-       x = normalized horizontal pixel error  (-1 left .. +1 right)
-       y = normalized vertical   pixel error  (-1 top  .. +1 bottom)
+       x = ground-projected North error in meters  (for centering)
+       y = ground-projected East  error in meters  (for centering)
        z = lock flag (1.0 = locked, 0.0 = no detection)
-     header.frame_id encodes the relative yaw as a string (degrees).
+     header.frame_id encodes the relative yaw as a string (degrees):
+       = marker_heading_world − drone_yaw
+       This is the angular error for yaw alignment (separate from centering).
+
+ArUco forward direction convention:
+  The marker's "top" edge (TL→TR, corners 0→1) points forward (in the
+  velocity direction). The detector computes the forward vector as
+  midpoint(BL,BR) → midpoint(TL,TR), projects both to the ground plane,
+  and derives the world-frame heading.
+
+Gimbal convention (matches real hardware):
+  -1.0 = Straight Down  (0   rad pitch)
+   0.0 = 45° Slant      (π/4 rad pitch)
+  +1.0 = Horizon        (π/2 rad pitch)
 
 Publishers:
   /asr/comparison/aruco_pixel_error  (geometry_msgs/Vector3Stamped)
@@ -42,7 +55,7 @@ _ARUCO_PARAMS.perspectiveRemovePixelPerCell = 4
 
 
 class ArucoDetectorComparison(Node):
-    """Detects ArUco ID 0 and publishes normalized pixel error."""
+    """Detects ArUco ID 0 and publishes ground-projected error + relative yaw."""
 
     def __init__(self):
         super().__init__('aruco_detector_comparison')
@@ -73,41 +86,35 @@ class ArucoDetectorComparison(Node):
         self.create_subscription(
             Float64, '/gimbal/cmd_pitch', self._gimbal_cb, 10)
 
-        self.get_logger().info('ArUco detector (comparison) started with GROUND PROJECTION')
+        self.get_logger().info('ArUco detector (comparison) started with GROUND PROJECTION + YAW')
 
     def _drone_cb(self, msg: DroneState):
         self.drone_pos = list(msg.position)
         self.drone_att = list(msg.orientation)
 
     def _gimbal_cb(self, msg: Float64):
-        # 1.0 = Front (0°), 0.0 = 45°, -1.0 = Down (90°)
-        self.gimbal_pitch = (1.0 - msg.data) * (math.pi / 4.0)
+        # -1.0 = Straight Down (0 rad), 0.0 = 45° (π/4), +1.0 = Horizon (π/2)
+        self.gimbal_pitch = (msg.data + 1.0) * (math.pi / 4.0)
 
     def _to_ground(self, u, v, alt):
         """Project pixel (u,v) to ground plane NED meters relative to drone."""
-        # 1. Image to camera-frame unit vector
-        x_c = (u - self.w/2.0) / self.f_px
-        y_c = (v - self.h/2.0) / self.f_px
-        P_c = np.array([y_c, x_c, 1.0])  # Note: Thyra cam has X=down, Y=right? No. 
-        # Re-verify project_f in cam: Pc[1]=right, -Pc[0]=up
-        # So P_c = [- (v - h/2)/f, (u - w/2)/f, 1.0]
+        # Image to camera-frame unit vector
         vec_c = np.array([-(v - self.h/2.0)/self.f_px, (u - self.w/2.0)/self.f_px, 1.0])
-        
-        # 2. Camera to NED rotation
+
+        # Camera to NED rotation
         pitch_total = self.gimbal_pitch if self.gimbal_pitch is not None else self.mount_pitch
-        
-        # Effective Angle: Match simulation convention exactly
+
         R_drone = self._rot(self.drone_att[0], self.drone_att[1], self.drone_att[2])
         R_mount = self._rot(0.0, pitch_total, 0.0)
         R = R_drone @ R_mount
-        
-        # 3. Target Ground Projection
+
+        # Target Ground Projection
         vec_n_target = R @ vec_c
         if vec_n_target[2] <= 0: return None
         k_target = alt / vec_n_target[2]
         ground_target = vec_n_target * k_target
 
-        # 4. Center-of-FOV Ground Projection
+        # Center-of-FOV Ground Projection
         vec_c_center = np.array([0.0, 0.0, 1.0])
         vec_n_center = R @ vec_c_center
         if vec_n_center[2] <= 0: return None
@@ -116,7 +123,23 @@ class ArucoDetectorComparison(Node):
 
         # The error for control is (Target - Boresight) in ground meters
         rel_err = ground_target - ground_center
-        return rel_err[:2] # [x_m, y_m] relative to drone in NED
+        return rel_err[:2]  # [x_m, y_m] relative to drone in NED
+
+    def _to_ground_absolute(self, u, v, alt):
+        """Project pixel (u,v) to absolute NED ground position (for heading calc)."""
+        vec_c = np.array([-(v - self.h/2.0)/self.f_px, (u - self.w/2.0)/self.f_px, 1.0])
+
+        pitch_total = self.gimbal_pitch if self.gimbal_pitch is not None else self.mount_pitch
+
+        R_drone = self._rot(self.drone_att[0], self.drone_att[1], self.drone_att[2])
+        R_mount = self._rot(0.0, pitch_total, 0.0)
+        R = R_drone @ R_mount
+
+        vec_n = R @ vec_c
+        if vec_n[2] <= 0: return None
+        k = alt / vec_n[2]
+        ground_pos = vec_n * k
+        return ground_pos[:2]  # [North, East] offset from drone
 
     def _rot(self, roll, pitch, yaw):
         cr, sr = math.cos(roll), math.sin(roll)
@@ -130,7 +153,6 @@ class ArucoDetectorComparison(Node):
     def _image_cb(self, msg: Image):
         frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
         h, w = frame.shape[:2]
-        cx, cy = w / 2.0, h / 2.0
 
         corners, ids, _ = cv2.aruco.detectMarkers(frame, _ARUCO_DICT, parameters=_ARUCO_PARAMS)
 
@@ -139,31 +161,49 @@ class ArucoDetectorComparison(Node):
 
         if ids is not None and 0 in ids.flatten():
             idx = list(ids.flatten()).index(0)
-            c = corners[idx][0]   # shape (4, 2)
+            c = corners[idx][0]   # shape (4, 2): TL=0, TR=1, BR=2, BL=3
 
-            # Marker centre
+            # Marker centre in pixels
             mc_x = float(np.mean(c[:, 0]))
             mc_y = float(np.mean(c[:, 1]))
 
-            # Metric Error (Ground Projection)
+            # ── Linear Error (Ground Projection) for CENTERING ──
             alt = -self.drone_pos[2]
             g_pos = self._to_ground(mc_x, mc_y, alt)
-            
+
             if g_pos is not None:
-                err_x_m = g_pos[0]  # North offset from drone in meters
-                err_y_m = g_pos[1]  # East  offset from drone in meters
-                
+                err_x_m = g_pos[0]  # North offset from boresight in meters
+                err_y_m = g_pos[1]  # East  offset from boresight in meters
+
                 out.vector.x = err_x_m
                 out.vector.y = err_y_m
                 out.vector.z = 1.0   # LOCKED
             else:
                 out.vector.z = 0.0
 
-            # Header encodes relative yaw (marker heading - drone yaw)
-            dx = c[1][0] - c[0][0]
-            dy = c[1][1] - c[0][1]
-            marker_angle_img = math.degrees(math.atan2(dy, dx))
-            out.header.frame_id = f'{marker_angle_img:.2f}'
+            # ── Relative Yaw (Ground Projection) for HEADING ALIGNMENT ──
+            # ArUco corner order: TL=0, TR=1, BR=2, BL=3
+            # "Front" = midpoint of TL-TR edge (top = forward)
+            # "Back"  = midpoint of BL-BR edge (bottom = rear)
+            mid_front_u = (c[0][0] + c[1][0]) / 2.0  # TL + TR
+            mid_front_v = (c[0][1] + c[1][1]) / 2.0
+            mid_back_u  = (c[3][0] + c[2][0]) / 2.0  # BL + BR
+            mid_back_v  = (c[3][1] + c[2][1]) / 2.0
+
+            gp_front = self._to_ground_absolute(mid_front_u, mid_front_v, alt)
+            gp_back  = self._to_ground_absolute(mid_back_u,  mid_back_v,  alt)
+
+            relative_yaw_deg = 0.0
+            if gp_front is not None and gp_back is not None:
+                # Forward vector in world NED: back → front
+                fwd_vec = gp_front - gp_back
+                marker_heading_world = math.atan2(fwd_vec[1], fwd_vec[0])
+                drone_yaw = self.drone_att[2]
+                relative_yaw_deg = math.degrees(marker_heading_world - drone_yaw)
+                # Normalize to [-180, 180]
+                relative_yaw_deg = (relative_yaw_deg + 180.0) % 360.0 - 180.0
+
+            out.header.frame_id = f'{relative_yaw_deg:.2f}'
 
             # Draw detection overlay
             cv2.aruco.drawDetectedMarkers(frame, corners, ids)
