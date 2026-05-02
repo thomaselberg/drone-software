@@ -24,3 +24,6 @@ src/asr_sensors/script/.lgd-nfy0/
 
 **/rosbag*/
 probe_data/
+__pycache__/
+*.pyc
+results/
