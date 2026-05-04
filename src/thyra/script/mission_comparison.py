@@ -354,14 +354,13 @@ class MissionComparison(Node):
                 if lock_age > self.LOCK_LOSS_TIMEOUT:
                     self.get_logger().warn(
                         f'LOCK LOST for {lock_age:.1f}s → ABORTING')
-                    self._record_kpi()
                     self._transition(MissionState.RTL)
                     return
                 elif lock_age > 0.5 and not self.locked:
                     pass
 
         # ── KPI save trigger: altitude < 0.4m ────────────────────────
-        if self.state in (MissionState.TERMINAL_LAND, MissionState.DESCEND_TO_1M):
+        if self.state in (MissionState.TERMINAL_LAND, MissionState.DESCEND_TO_1M, MissionState.RTL):
             alt = -self.local_pos.z
             if alt < 0.4 and not self.kpi_saved:
                 self.get_logger().info(f'ALT {alt:.2f}m < 0.4m → saving KPI')

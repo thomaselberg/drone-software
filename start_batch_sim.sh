@@ -125,8 +125,8 @@ for ENTRY in "${BATCH[@]}"; do
     CAM_PID=$!
 
     # ── 4. Launch ArUco Detector ─────────────────────────────────────
-    echo -e "${BLUE}>>> [3/5] Launching ArUco detector...${NC}"
-    ros2 run thyra aruco_detector_comparison.py &
+    echo -e "${BLUE}>>> [3/5] Launching ArUco detector (C++)...${NC}"
+    ros2 run thyra aruco_detector_comparison &
     DET_PID=$!
 
     # ── 5. Launch Wind Gust Generator ────────────────────────────────
