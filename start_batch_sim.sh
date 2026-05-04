@@ -219,9 +219,9 @@ for ENTRY in "${BATCH[@]}"; do
     # ── 10. Extract KPIs from CSV and append to summary ──────────────
     if [ -n "$NEW_CSV" ] && [ -f "$NEW_CSV" ]; then
         DATA_LINE=$(tail -1 "$NEW_CSV")
-        LINEAR_ERR=$(echo "$DATA_LINE" | cut -d',' -f4)
-        ROT_ERR=$(echo "$DATA_LINE" | cut -d',' -f5)
-        ENGAGE=$(echo "$DATA_LINE" | cut -d',' -f6)
+        LINEAR_ERR=$(echo "$DATA_LINE" | cut -d',' -f5)
+        ROT_ERR=$(echo "$DATA_LINE" | cut -d',' -f6)
+        ENGAGE=$(echo "$DATA_LINE" | cut -d',' -f7)
         echo "${RUN_NUM},${MODE},${SCENARIO},${WIND},${LINEAR_ERR},${ROT_ERR},${ENGAGE},$(basename "$NEW_CSV")" \
             >> "$SUMMARY_FILE"
         echo -e "${GREEN}  Linear Error  : ${LINEAR_ERR} m${NC}"

@@ -149,6 +149,10 @@ class MissionComparison(Node):
         # KPI save guard
         self.kpi_saved = False
 
+        # Time-series recording (10 Hz from first lock to touchdown)
+        self.timeseries_rows = []
+        self.recording_active = False
+
         # ── Timers ────────────────────────────────────────────────────
         self.create_timer(0.1, self._heartbeat_tick)
         self.create_timer(0.05, self._mission_tick)   # 20 Hz
@@ -176,6 +180,9 @@ class MissionComparison(Node):
             if self.first_lock_time is None:
                 self.first_lock_time = self.get_clock().now()
                 self.get_logger().info('FIRST VISUAL LOCK acquired')
+                if not self.recording_active:
+                    self.recording_active = True
+                    self.create_timer(0.1, self._record_sample)
         try:
             self.relative_yaw_deg = float(msg.header.frame_id)
         except (ValueError, TypeError):
@@ -192,6 +199,43 @@ class MissionComparison(Node):
                 'STATIC MODE: Captured one-shot truth  '
                 f'pos=({msg.twist.linear.x:.2f}, {msg.twist.linear.y:.2f})  '
                 f'vel=({msg.twist.angular.x:.2f}, {msg.twist.angular.y:.2f})')
+
+    # ── Time-series sample (10 Hz) ────────────────────────────────────
+    def _record_sample(self):
+        """Capture one row of time-series data at 10 Hz."""
+        if not self.recording_active or self.first_lock_time is None:
+            return
+
+        elapsed_ms = int((self.get_clock().now() - self.first_lock_time).nanoseconds / 1e6)
+
+        dx = self.drone_state.position[0] if len(self.drone_state.position) >= 1 else 0.0
+        dy = self.drone_state.position[1] if len(self.drone_state.position) >= 2 else 0.0
+        d_yaw = self.drone_state.orientation[2] if len(self.drone_state.orientation) >= 3 else 0.0
+        alt = -self.local_pos.z
+
+        tx, ty, t_heading = 0.0, 0.0, 0.0
+        if self.latest_truth is not None:
+            tx = self.latest_truth.twist.linear.x
+            ty = self.latest_truth.twist.linear.y
+            t_heading = self.latest_truth.twist.angular.z
+
+        linear_error = math.hypot(dx - tx, dy - ty)
+        rot_err = abs(d_yaw - t_heading)
+        if rot_err > math.pi:
+            rot_err = 2 * math.pi - rot_err
+
+        engagement_s = (self.get_clock().now() - self.first_lock_time).nanoseconds / 1e9
+
+        self.timeseries_rows.append({
+            'time_ms': elapsed_ms,
+            'linear_error_m': f'{linear_error:.4f}',
+            'rotation_error_deg': f'{math.degrees(rot_err):.2f}',
+            'engagement_duration_s': f'{engagement_s:.2f}',
+            'drone_x': f'{dx:.4f}', 'drone_y': f'{dy:.4f}',
+            'target_x': f'{tx:.4f}', 'target_y': f'{ty:.4f}',
+            'altitude_m': f'{alt:.3f}',
+            'state': self.state,
+        })
 
     # ── Heartbeat ─────────────────────────────────────────────────────
     def _heartbeat_tick(self):
@@ -497,10 +541,11 @@ class MissionComparison(Node):
 
     # ── KPI recording ─────────────────────────────────────────────────
     def _record_kpi(self):
-        """Write a single-row CSV with the three KPIs."""
+        """Write time-series CSV with all accumulated rows + final touchdown row."""
         if self.kpi_saved:
             return
         self.kpi_saved = True
+        self.recording_active = False  # Stop 10Hz timer
 
         try:
             dx = self.drone_state.position[0] if len(self.drone_state.position) >= 1 else 0.0
@@ -526,6 +571,19 @@ class MissionComparison(Node):
             if self.first_lock_time is not None:
                 engagement_s = (self.get_clock().now() - self.first_lock_time).nanoseconds / 1e9
 
+            # Add final touchdown row
+            final_time_ms = int((self.get_clock().now() - self.first_lock_time).nanoseconds / 1e6) if self.first_lock_time else 0
+            self.timeseries_rows.append({
+                'time_ms': final_time_ms,
+                'linear_error_m': f'{linear_error:.4f}',
+                'rotation_error_deg': f'{rot_error_deg:.2f}',
+                'engagement_duration_s': f'{engagement_s:.2f}',
+                'drone_x': f'{dx:.4f}', 'drone_y': f'{dy:.4f}',
+                'target_x': f'{tx:.4f}', 'target_y': f'{ty:.4f}',
+                'altitude_m': f'{-self.local_pos.z:.3f}',
+                'state': self.state,
+            })
+
             mode_tag = 'static' if self.mode == 'STATIC' else 'gimbal'
             scenario_tag = self.scenario.lower()
             now_str = datetime.now().strftime('%H%M%S')
@@ -537,16 +595,20 @@ class MissionComparison(Node):
             with open(filepath, 'w', newline='') as f:
                 writer = csv.writer(f)
                 writer.writerow([
-                    'mode', 'scenario', 'wind_scenario',
+                    'time_ms', 'mode', 'scenario', 'wind_scenario',
                     'linear_error_m', 'rotation_error_deg',
                     'engagement_duration_s',
-                    'drone_x', 'drone_y', 'target_x', 'target_y'])
-                writer.writerow([
-                    mode_tag, scenario_tag, self.wind_scenario,
-                    f'{linear_error:.4f}', f'{rot_error_deg:.2f}',
-                    f'{engagement_s:.2f}',
-                    f'{dx:.4f}', f'{dy:.4f}',
-                    f'{tx:.4f}', f'{ty:.4f}'])
+                    'drone_x', 'drone_y', 'target_x', 'target_y',
+                    'altitude_m', 'state'])
+                for row in self.timeseries_rows:
+                    writer.writerow([
+                        row['time_ms'], mode_tag, scenario_tag,
+                        self.wind_scenario,
+                        row['linear_error_m'], row['rotation_error_deg'],
+                        row['engagement_duration_s'],
+                        row['drone_x'], row['drone_y'],
+                        row['target_x'], row['target_y'],
+                        row['altitude_m'], row['state']])
 
             self.get_logger().info(
                 f'KPI saved → {filepath}\n'
@@ -570,7 +632,10 @@ def main(args=None):
             node.get_logger().info('Node shutting down — saving KPI as fallback')
             node._record_kpi()
         node.destroy_node()
-        rclpy.shutdown()
+        try:
+            rclpy.shutdown()
+        except Exception:
+            pass
 
 
 if __name__ == '__main__':

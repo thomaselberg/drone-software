@@ -82,6 +82,7 @@ install(PROGRAMS
   script/synthetic_cam_comparison.py
   script/aruco_detector_comparison.py
   script/mission_comparison.py
+  script/real_flight_test.py
   script/wind_gust_generator.py
   DESTINATION lib/${PROJECT_NAME}
 )
