@@ -59,6 +59,24 @@ ament_target_dependencies(thyra_lib
   geometry_msgs
 )
 
+add_executable(aruco_detector_comparison
+  src/aruco_detector_comparison.cpp
+)
+target_link_libraries(aruco_detector_comparison
+  ${OpenCV_LIBRARIES}
+)
+target_include_directories(aruco_detector_comparison PUBLIC
+  ${OpenCV_INCLUDE_DIRS}
+)
+ament_target_dependencies(aruco_detector_comparison
+  rclcpp
+  sensor_msgs
+  geometry_msgs
+  std_msgs
+  interfaces
+  cv_bridge
+)
+
 
 add_executable(thyra_mission_executor 
   src/main.cpp
@@ -100,6 +118,7 @@ ament_target_dependencies(thyra_mission_executor
 install(TARGETS
   thyra_lib
   thyra_mission_executor
+  aruco_detector_comparison
   DESTINATION lib/${PROJECT_NAME}
 )
 

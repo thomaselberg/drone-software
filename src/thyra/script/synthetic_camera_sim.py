@@ -13,6 +13,7 @@ Gimbal convention (matches real hardware):
 
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import ExternalShutdownException
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import Image
 from interfaces.msg import DroneState
@@ -155,7 +156,7 @@ def main(args=None):
     node = SyntheticCameraNode()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, SystemExit, ExternalShutdownException):
         pass
     finally:
         cv2.destroyAllWindows()

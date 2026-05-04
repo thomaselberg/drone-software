@@ -24,6 +24,7 @@ Parameters:
 
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import ExternalShutdownException
 from geometry_msgs.msg import Vector3
 import math
 import time
@@ -143,7 +144,7 @@ def main(args=None):
     node = WindGustGenerator()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, SystemExit, ExternalShutdownException):
         pass
     finally:
         node.destroy_node()

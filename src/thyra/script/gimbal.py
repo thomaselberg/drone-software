@@ -3,6 +3,7 @@
 import math
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import ExternalShutdownException
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 from interfaces.msg import ServoCommand
 
@@ -80,7 +81,7 @@ def main(args=None):
     node = GimbalPitchSweep()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, SystemExit, ExternalShutdownException):
         node.get_logger().info("Shutting down")
     finally:
         node.destroy_node()

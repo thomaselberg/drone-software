@@ -14,6 +14,7 @@ relative yaw from the ArUco detector.
 
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import ExternalShutdownException
 from rclpy.action import ActionClient
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 
@@ -625,7 +626,7 @@ def main(args=None):
     node = MissionComparison()
     try:
         rclpy.spin(node)
-    except (KeyboardInterrupt, SystemExit):
+    except (KeyboardInterrupt, SystemExit, ExternalShutdownException):
         pass
     finally:
         if not node.kpi_saved:

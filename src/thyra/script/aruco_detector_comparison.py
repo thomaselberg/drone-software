@@ -38,6 +38,7 @@ Subscribers:
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
+from rclpy.executors import ExternalShutdownException
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Vector3Stamped
 from cv_bridge import CvBridge
@@ -75,7 +76,7 @@ class ArucoDetectorComparison(Node):
 
         # Publisher
         self.pub_error = self.create_publisher(
-            Vector3Stamped, '/asr/comparison/aruco_pixel_error', 10)
+            Vector3Stamped, '/asr/comparison/aruco_pixel_error', 1)
 
         # Subscribers
         self.create_subscription(
@@ -214,7 +215,10 @@ class ArucoDetectorComparison(Node):
             out.vector.z = 0.0   # NO LOCK
             out.header.frame_id = '0.0'
 
-        self.pub_error.publish(out)
+        try:
+            self.pub_error.publish(out)
+        except Exception:
+            pass
 
         # Show annotated feed
         cv2.imshow('ArUco Detector (Comparison)', frame)
@@ -226,7 +230,7 @@ def main(args=None):
     node = ArucoDetectorComparison()
     try:
         rclpy.spin(node)
-    except (KeyboardInterrupt, SystemExit):
+    except (KeyboardInterrupt, SystemExit, ExternalShutdownException):
         pass
     finally:
         cv2.destroyAllWindows()

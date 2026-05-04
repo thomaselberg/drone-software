@@ -23,6 +23,7 @@ ArUco marker orientation:
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
+from rclpy.executors import ExternalShutdownException
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import TwistStamped
 from std_msgs.msg import Float64
@@ -90,8 +91,8 @@ class SyntheticComparisonCam(Node):
         self.target_started = False
         self.drone_state_received = False
 
-        self.pub_img = self.create_publisher(Image, '/camera/camera/color/image_raw', 10)
-        self.pub_truth = self.create_publisher(TwistStamped, '/asr/sim/true_target_state', 10)
+        self.pub_img = self.create_publisher(Image, '/camera/camera/color/image_raw', 1)
+        self.pub_truth = self.create_publisher(TwistStamped, '/asr/sim/true_target_state', 1)
         self.create_subscription(DroneState, '/asr/thyra/out/drone_state', self._drone_cb, 10)
         self.create_subscription(Float64, '/gimbal/cmd_pitch', self._gimbal_cb, 10)
 
@@ -262,16 +263,23 @@ class SyntheticComparisonCam(Node):
                 img[:,:] = 255
 
         # 5. Publish
-        self.pub_img.publish(self.bridge.cv2_to_imgmsg(img, 'bgr8'))
+        try:
+            self.pub_img.publish(self.bridge.cv2_to_imgmsg(img, 'bgr8'))
+        except Exception:
+            pass
+        
+        cv2.imshow('Synthetic Engine Raw', img)
+        cv2.waitKey(1)
 
 def main():
     rclpy.init()
     node = SyntheticComparisonCam()
     try:
         rclpy.spin(node)
-    except (KeyboardInterrupt, SystemExit):
+    except (KeyboardInterrupt, SystemExit, ExternalShutdownException):
         pass
     finally:
+        cv2.destroyAllWindows()
         node.destroy_node()
         try:
             rclpy.shutdown()
