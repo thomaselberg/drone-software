@@ -183,7 +183,7 @@ class MissionComparison(Node):
                 self.get_logger().info('FIRST VISUAL LOCK acquired')
                 if not self.recording_active:
                     self.recording_active = True
-                    self.create_timer(0.1, self._record_sample)
+                    self.record_timer = self.create_timer(0.1, self._record_sample)
         try:
             self.relative_yaw_deg = float(msg.header.frame_id)
         except (ValueError, TypeError):
