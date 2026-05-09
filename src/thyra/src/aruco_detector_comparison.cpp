@@ -16,6 +16,10 @@ using std::placeholders::_1;
 class ArucoDetectorComparisonCpp : public rclcpp::Node {
 public:
     ArucoDetectorComparisonCpp() : Node("aruco_detector_comparison") {
+        // Parameters
+        this->declare_parameter<bool>("show_window", true);
+        show_window_ = this->get_parameter("show_window").as_bool();
+
         drone_pos_ = {0.0, 0.0, 0.0};
         drone_att_ = {0.0, 0.0, 0.0};
         mount_pitch_ = 45.0 * M_PI / 180.0;
@@ -34,6 +38,10 @@ public:
         pub_error_ = this->create_publisher<geometry_msgs::msg::Vector3Stamped>(
             "/asr/comparison/aruco_pixel_error", 1);
 
+        // Annotated detector overlay — viewable remotely via rqt_image_view
+        pub_annotated_ = this->create_publisher<sensor_msgs::msg::Image>(
+            "/asr/comparison/aruco_detector_image", rclcpp::SensorDataQoS());
+
         auto qos_sensor = rclcpp::SensorDataQoS();
 
         sub_image_ = this->create_subscription<sensor_msgs::msg::Image>(
@@ -48,10 +56,13 @@ public:
             "/gimbal/cmd_pitch", 10,
             std::bind(&ArucoDetectorComparisonCpp::gimbal_cb, this, _1));
 
-        RCLCPP_INFO(this->get_logger(), "C++ ArUco detector (comparison) started");
+        RCLCPP_INFO(this->get_logger(),
+                    "C++ ArUco detector (comparison) started  show_window=%s",
+                    show_window_ ? "true" : "false");
     }
 
 private:
+    bool show_window_;
     std::vector<double> drone_pos_;
     std::vector<double> drone_att_;
     double mount_pitch_;
@@ -62,6 +73,7 @@ private:
     cv::Ptr<cv::aruco::DetectorParameters> aruco_params_;
 
     rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr pub_error_;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_annotated_;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr sub_image_;
     rclcpp::Subscription<interfaces::msg::DroneState>::SharedPtr sub_drone_;
     rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr sub_gimbal_;
@@ -233,8 +245,21 @@ private:
             // Context invalid on shutdown
         }
 
-        cv::imshow("ArUco Detector (Comparison)", frame);
-        cv::waitKey(1);
+        // Republish annotated frame so it can be viewed remotely (rqt_image_view)
+        try {
+            std_msgs::msg::Header hdr;
+            hdr.stamp = this->now();
+            hdr.frame_id = "aruco_detector";
+            auto out_img = cv_bridge::CvImage(hdr, "bgr8", frame).toImageMsg();
+            pub_annotated_->publish(*out_img);
+        } catch (...) {
+            // Context invalid on shutdown
+        }
+
+        if (show_window_) {
+            cv::imshow("ArUco Detector (Comparison)", frame);
+            cv::waitKey(1);
+        }
     }
 };
 
@@ -242,7 +267,7 @@ int main(int argc, char * argv[]) {
     rclcpp::init(argc, argv);
     auto node = std::make_shared<ArucoDetectorComparisonCpp>();
     rclcpp::spin(node);
-    cv::destroyAllWindows();
+    try { cv::destroyAllWindows(); } catch (...) {}  // No-op if no windows opened
     rclcpp::shutdown();
     return 0;
 }
