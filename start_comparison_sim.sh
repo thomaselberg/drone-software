@@ -108,9 +108,9 @@ ros2 run thyra synthetic_cam_comparison.py --ros-args \
     -p camera_pitch_deg:=45.0 &
 CAM_PID=$!
 
-# ── 6. Launch ArUco Detector ─────────────────────────────────────────
-echo -e "${BLUE}>>> [3/5] Launching ArUco detector...${NC}"
-ros2 run thyra aruco_detector_comparison.py &
+# ── 6. Launch ArUco Detector (C++) ───────────────────────────────────
+echo -e "${BLUE}>>> [3/5] Launching ArUco detector (C++)...${NC}"
+ros2 run thyra aruco_detector_comparison --ros-args -p show_window:=true &
 DET_PID=$!
 
 # ── 7. Launch Wind Gust Generator ────────────────────────────────────
@@ -134,12 +134,21 @@ while true; do
     sleep 1
 done
 
-# ── 9. Launch Mission Controller ─────────────────────────────────────
-echo -e "${GREEN}>>> [5/5] Launching mission_comparison (${MODE}, ${SCENARIO}, ${WIND})...${NC}"
-ros2 run thyra mission_comparison.py --ros-args \
+# ── 9. Launch KPI Logger (sim) ───────────────────────────────────────
+echo -e "${BLUE}>>> [5a/5] Launching KPI logger (sim)...${NC}"
+ros2 run thyra kpi_logger_sim.py --ros-args \
+    -p mode:="${MODE}" \
+    -p scenario:="${SCENARIO}" \
+    -p wind_scenario:="${WIND}" &
+KPI_PID=$!
+
+# ── 10. Launch Mission Controller ────────────────────────────────────
+echo -e "${GREEN}>>> [5b/5] Launching vision_landing_mission (${MODE}, ${SCENARIO}, ${WIND})...${NC}"
+ros2 run thyra vision_landing_mission.py --ros-args \
     -p mode:="${MODE}" \
     -p scenario:="${SCENARIO}" \
     -p wind_scenario:="${WIND}" \
+    -p takeoff_alt:=1.5 \
     -p target_start_x:="${TARGET_DIST}" \
     -p target_start_y:=0.0 &
 MISSION_PID=$!
@@ -152,7 +161,7 @@ echo -e "${GREEN}║  Results → ~/drone-software/results/          ║${NC}"
 echo -e "${GREEN}╚═══════════════════════════════════════════════╝${NC}"
 
 trap "echo -e '${RED}Shutting down all nodes...${NC}'; \
-      kill $SIM_PID $CAM_PID $DET_PID $WIND_PID $MISSION_PID 2>/dev/null; \
+      kill $SIM_PID $CAM_PID $DET_PID $WIND_PID $KPI_PID $MISSION_PID 2>/dev/null; \
       exit" INT TERM
 
 wait

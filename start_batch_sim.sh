@@ -91,6 +91,8 @@ for ENTRY in "${BATCH[@]}"; do
 
     # ── 1. Cleanup previous run (surgical — keep QGC alive) ──────────
     echo -e "${YELLOW}>>> Cleaning up previous sessions...${NC}"
+    pkill -f "vision_landing_mission"    2>/dev/null
+    pkill -f "kpi_logger_sim"            2>/dev/null
     pkill -f "mission_comparison"        2>/dev/null
     pkill -f "synthetic_cam_comparison"  2>/dev/null
     pkill -f "aruco_detector_comparison" 2>/dev/null
@@ -124,9 +126,9 @@ for ENTRY in "${BATCH[@]}"; do
         -p camera_pitch_deg:=45.0 &
     CAM_PID=$!
 
-    # ── 4. Launch ArUco Detector ─────────────────────────────────────
+    # ── 4. Launch ArUco Detector (C++) ───────────────────────────────
     echo -e "${BLUE}>>> [3/5] Launching ArUco detector (C++)...${NC}"
-    ros2 run thyra aruco_detector_comparison &
+    ros2 run thyra aruco_detector_comparison --ros-args -p show_window:=true &
     DET_PID=$!
 
     # ── 5. Launch Wind Gust Generator ────────────────────────────────
@@ -162,30 +164,39 @@ for ENTRY in "${BATCH[@]}"; do
         continue
     fi
 
-    # ── 7. Launch Mission Controller ─────────────────────────────────
-    # Snapshot existing CSV files BEFORE launching mission
+    # ── 7. Launch KPI Logger (sim) ───────────────────────────────────
+    # Snapshot existing CSV files BEFORE launching logger + mission
     BEFORE_CSVS=$(ls -1 "$RESULTS_DIR"/*.csv 2>/dev/null | sort)
 
-    echo -e "${GREEN}>>> [5/5] Launching mission (${MODE}, ${SCENARIO}, ${WIND})...${NC}"
-    ros2 run thyra mission_comparison.py --ros-args \
+    echo -e "${BLUE}>>> [5a/5] Launching KPI logger (sim)...${NC}"
+    ros2 run thyra kpi_logger_sim.py --ros-args \
+        -p mode:="${MODE}" \
+        -p scenario:="${SCENARIO}" \
+        -p wind_scenario:="${WIND}" &
+    KPI_PID=$!
+
+    # ── 8. Launch Mission Controller ─────────────────────────────────
+    echo -e "${GREEN}>>> [5b/5] Launching vision_landing_mission (${MODE}, ${SCENARIO}, ${WIND})...${NC}"
+    ros2 run thyra vision_landing_mission.py --ros-args \
         -p mode:="${MODE}" \
         -p scenario:="${SCENARIO}" \
         -p wind_scenario:="${WIND}" \
+        -p takeoff_alt:=1.5 \
         -p target_start_x:="${TARGET_DIST}" \
         -p target_start_y:=0.0 &
     MISSION_PID=$!
 
-    # ── 8. Wait for mission node to appear ───────────────────────────
+    # ── 9. Wait for mission node to appear ───────────────────────────
     echo -e "${YELLOW}>>> Waiting for mission node to start...${NC}"
     for i in $(seq 1 30); do
-        if pgrep -f "mission_comparison" > /dev/null 2>&1; then
-            echo -e "${GREEN}>>> Mission node running (PID: $(pgrep -f mission_comparison | head -1))${NC}"
+        if pgrep -f "vision_landing_mission" > /dev/null 2>&1; then
+            echo -e "${GREEN}>>> Mission node running (PID: $(pgrep -f vision_landing_mission | head -1))${NC}"
             break
         fi
         sleep 1
     done
 
-    # ── 9. Monitor mission until CSV or timeout ──────────────────────
+    # ── 10. Monitor mission until CSV or timeout ─────────────────────
     ELAPSED=0
     NEW_CSV=""
     while [ $ELAPSED -lt $RUN_TIMEOUT ]; do
@@ -203,7 +214,7 @@ for ENTRY in "${BATCH[@]}"; do
         fi
 
         # Check if mission node has exited (only after it was confirmed running)
-        if ! pgrep -f "mission_comparison" > /dev/null 2>&1; then
+        if ! pgrep -f "vision_landing_mission" > /dev/null 2>&1; then
             echo -e "${YELLOW}>>> Mission node exited${NC}"
             sleep 2
             AFTER_CSVS=$(ls -1 "$RESULTS_DIR"/*.csv 2>/dev/null | sort)
@@ -236,6 +247,8 @@ done
 
 # ── Final cleanup ─────────────────────────────────────────────────────
 echo -e "${YELLOW}>>> Final cleanup...${NC}"
+pkill -f "vision_landing_mission"    2>/dev/null
+pkill -f "kpi_logger_sim"            2>/dev/null
 pkill -f "mission_comparison"        2>/dev/null
 pkill -f "synthetic_cam_comparison"  2>/dev/null
 pkill -f "aruco_detector_comparison" 2>/dev/null

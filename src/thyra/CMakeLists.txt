@@ -92,7 +92,7 @@ target_include_directories(thyra_mission_executor PUBLIC
   ${OpenCV_INCLUDE_DIRS}  
 )
 
-# 
+#
 install(PROGRAMS
   script/gimbal.py
   script/mission_zero.py
@@ -102,6 +102,9 @@ install(PROGRAMS
   script/mission_comparison.py
   script/real_flight_test.py
   script/wind_gust_generator.py
+  script/vision_landing_mission.py
+  script/kpi_logger_sim.py
+  script/kpi_logger_real.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
