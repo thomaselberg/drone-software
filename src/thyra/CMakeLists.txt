@@ -103,6 +103,7 @@ install(PROGRAMS
   script/real_flight_test.py
   script/wind_gust_generator.py
   script/vision_landing_mission.py
+  script/bench_dry_test.py
   script/kpi_logger_sim.py
   script/kpi_logger_real.py
   DESTINATION lib/${PROJECT_NAME}
