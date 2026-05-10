@@ -1,0 +1,309 @@
+[INFO] [1778260540.565469434] [asr.thyra.autopilot]: Using system time source
+[INFO] [1778260540.565741231] [asr.thyra.autopilot]: Using px4 position source
+[INFO] [1778260540.565901655] [asr.thyra.autopilot]: pitch PID gains: Kp=0.15, Ki=0.01, Kd=0.00
+[INFO] [1778260540.566029051] [asr.thyra.autopilot]: roll PID gains: Kp=0.15, Ki=0.01, Kd=0.00
+[INFO] [1778260540.566126267] [asr.thyra.autopilot]: yaw PID gains: Kp=0.15, Ki=0.00, Kd=0.05
+[INFO] [1778260540.566238545] [asr.thyra.autopilot]: thrust PID gains: Kp=0.50, Ki=0.10, Kd=0.01
+[INFO] [1778260540.566334670] [asr.thyra.autopilot]: Position X PID gains: Kp=1.00, Ki=0.00, Kd=0.01
+[INFO] [1778260540.566446227] [asr.thyra.autopilot]: Position Y PID gains: Kp=1.00, Ki=0.00, Kd=0.01
+[INFO] [1778260540.566554162] [asr.thyra.autopilot]: Position Z PID gains: Kp=1.00, Ki=0.00, Kd=0.01
+[INFO] [1778260540.566614007] [asr.thyra.autopilot]: Controller EMA filter alpha: 0.15
+[INFO] [1778260540.566810508] [asr.thyra.autopilot]: Motion constraints (path planner & controller):
+  min_linear_velocity     = 0.10 m/s
+  min_angular_velocity    = 0.10 rad/s
+  max_linear_velocity     = 1.50 m/s
+  max_angular_velocity    = 1.50 rad/s
+  max_tilt_angle          = 20.0 degrees (0.349 rad)
+  default_linear_velocity = 0.40 m/s
+  default_angular_velocity= 0.50 rad/s
+[INFO] [1778260540.566842205] [asr.thyra.autopilot]: Controller velocity saturation:
+  max_horizontal_velocity = 1.50 m/s
+  max_vertical_velocity   = 1.50 m/s
+[INFO] [1778260540.567160576] [asr.thyra.autopilot]: Safety parameters:
+  gcs_timeout            = 1.00 s
+  position_timeout       = 0.20 s
+  safety_thrust_initial  = -0.72
+  safety_thrust_final    = -0.65
+  safety_thrustdown_rate = 0.4000
+  check_battery          = true
+  battery_threshold      = 0.05
+  check_geofence         = false
+  geofence_radius        = 20.00 m
+  geofence_height        = 10.00 m
+  do_mode_change_delay   = false
+  mode_change_delay      = 5.00 s
+[INFO] [1778260540.567287621] [asr.thyra.autopilot]: Lidar offset: 0.00
+[INFO] [1778260540.567302721] [asr.thyra.autopilot]: Takeoff height: -1.50
+[INFO] [1778260540.567315215] [asr.thyra.autopilot]: Motor speed min: 1000.00
+[INFO] [1778260540.567329779] [asr.thyra.autopilot]: Motor speed max: 1900.00
+[INFO] [1778260540.567402339] [asr.thyra.autopilot]: Hover thrust estimate: -0.700
+[INFO] [1778260540.567420322] [asr.thyra.autopilot]: Hover thrust learning rate: 0.000100
+[INFO] [1778260595.582954841] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778260595.585363325] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778260595.585763832] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260597.612492816] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260597.613169463] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260597.613496597] [asr.thyra.autopilot]: Goal execution completed.
+[WARN] [1778260605.439086460] [asr.thyra.autopilot]: Gimbal manual control timeout - switching to auto
+[WARN] [1778260643.950299172] [asr.thyra.autopilot]: Gimbal manual control timeout - switching to auto
+[WARN] [1778260657.174992265] [asr.thyra.autopilot]: Gimbal manual control timeout - switching to auto
+[WARN] [1778260660.602070447] [asr.thyra.autopilot]: Gimbal manual control timeout - switching to auto
+[WARN] [1778260664.190133538] [asr.thyra.autopilot]: Gimbal manual control timeout - switching to auto
+[WARN] [1778260670.395797030] [asr.thyra.autopilot]: Gimbal manual control timeout - switching to auto
+[INFO] [1778260700.476250584] [asr.thyra.autopilot]: Received goal request with command_type: set_origin
+[INFO] [1778260700.476615605] [asr.thyra.autopilot]: Origin set to current position: (-10.55, -2.10, 0.78)
+[INFO] [1778260700.476768551] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260700.477012960] [asr.thyra.autopilot]: Received goal request with command_type: set_origin
+[INFO] [1778260700.477251424] [asr.thyra.autopilot]: Origin set to current position: (-10.55, -2.10, 0.78)
+[INFO] [1778260700.477347999] [asr.thyra.autopilot]: Received goal request with command_type: set_origin
+[INFO] [1778260700.477432388] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260700.477613519] [asr.thyra.autopilot]: Origin set to current position: (-10.55, -2.10, 0.78)
+[INFO] [1778260700.477740797] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260700.477863206] [asr.thyra.autopilot]: Received goal request with command_type: set_origin
+[INFO] [1778260700.478053207] [asr.thyra.autopilot]: Origin set to current position: (-10.55, -2.10, 0.78)
+[INFO] [1778260700.478121744] [asr.thyra.autopilot]: Received goal request with command_type: set_origin
+[INFO] [1778260700.478205245] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260700.478446839] [asr.thyra.autopilot]: Origin set to current position: (-10.55, -2.10, 0.78)
+[INFO] [1778260700.478519673] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778260700.478601488] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260700.478828323] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778260700.478903768] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778260700.479255548] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260700.479412789] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778260700.479597328] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260700.479639346] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260700.480068923] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260700.480265276] [asr.thyra.autopilot]: Goal execution completed.
+[WARN] [1778260739.036406303] [asr.thyra.autopilot]: Gimbal manual control timeout - switching to auto
+[INFO] [1778260739.116416363] [asr.thyra.autopilot]: Received goal request with command_type: set_origin
+[INFO] [1778260739.116882448] [asr.thyra.autopilot]: Origin set to current position: (-5.79, 0.55, 0.93)
+[INFO] [1778260739.117234016] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260745.461122845] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778260745.461796648] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778260745.462351027] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260746.927556042] [asr.thyra.autopilot]: Received goal request with command_type: takeoff
+[INFO] [1778260746.928039237] [asr.thyra.autopilot]: Control mode updated to: 2
+[INFO] [1778260746.928151254] [asr.thyra.autopilot]: Control loop started with mode: 2
+[INFO] [1778260746.933929557] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260748.550821190] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260748.551313588] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260748.551428049] [asr.thyra.autopilot]: Control loop stopped.
+[INFO] [1778260748.551682656] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260751.402202323] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778260751.404272636] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778260751.404899903] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260752.393055325] [asr.thyra.autopilot]: Received goal request with command_type: takeoff
+[INFO] [1778260752.393972882] [asr.thyra.autopilot]: Control loop started with mode: 2
+[INFO] [1778260752.395997233] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260754.097569962] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260754.099114063] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260754.099415354] [asr.thyra.autopilot]: Control loop stopped.
+[INFO] [1778260754.099964307] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260855.069047603] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260855.069493717] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260855.069699051] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260888.616191154] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260888.616639459] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260888.616857704] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260888.622738482] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260888.623358368] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260888.623598446] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260888.694756941] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260888.695226338] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260888.695448953] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260889.512974235] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260889.513752803] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260889.513752951] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260889.514369325] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260889.514974236] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260889.515438877] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260889.514402675] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260889.515917239] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260889.516317865] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260889.516957145] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260889.517308959] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260889.517780266] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260889.517915444] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260889.517916462] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260889.520107879] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260889.517972867] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260889.520460174] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260889.521002292] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260889.518020568] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260889.521784490] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260889.521995867] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260905.972376314] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778260905.972701717] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778260905.972873780] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260905.973323503] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260905.973690778] [asr.thyra.autopilot]: Control mode updated to: 1
+[INFO] [1778260905.973794208] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260905.999988034] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778260906.000047500] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778260906.003189849] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260906.003497752] [asr.thyra.autopilot]: Control loop started with mode: 1
+[INFO] [1778260906.003601943] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260906.066878371] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778260906.066946337] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778260906.067681557] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260906.068050260] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260906.098003163] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778260906.098068481] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778260906.106050212] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260906.106488695] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260912.090480613] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260912.091840101] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260912.092101582] [asr.thyra.autopilot]: Control loop stopped.
+[INFO] [1778260912.094535610] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260912.139084535] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260912.139448951] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260912.139605518] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260912.190177841] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260912.190950268] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260912.191510864] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260912.266701523] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260912.267170872] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260912.267452577] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260912.291019152] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260912.292461904] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260912.292764852] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260912.378284314] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260912.379058629] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260912.379759180] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260912.396304728] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260912.396731981] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260912.396887363] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260912.464870390] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260912.465298236] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260912.465446710] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260912.497198117] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260912.497626296] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260912.497795586] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260913.994087353] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778260913.994894173] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260913.995477940] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778260913.996111599] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260913.994922212] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778260913.996368526] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260913.996540761] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260913.996146509] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778260913.996737313] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260913.997247926] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260913.997358805] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778260913.997641808] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260913.997702201] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778260913.997946553] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260913.998004798] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260913.998122067] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778260913.998387031] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260913.998420941] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778260913.998614234] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778260913.998690332] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260913.998889032] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260913.998920479] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778260913.999408276] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260913.999486985] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260913.999602550] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260914.075960772] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778260914.076022869] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778260914.076186808] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260914.076430513] [asr.thyra.autopilot]: Control loop started with mode: 1
+[INFO] [1778260914.076433531] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778260914.076492610] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778260914.076537577] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260914.083063930] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260914.083467665] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260914.158474877] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778260914.158544956] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778260914.162835687] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260914.164257319] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260914.169915787] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778260914.169971570] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778260914.191857941] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260914.192598389] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260914.265014283] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778260914.265091493] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778260914.265710079] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260914.266220972] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260914.288197832] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778260914.288427184] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778260914.298564528] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260914.299237841] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260914.339076030] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778260914.339128090] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778260914.341486130] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260914.341946203] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260914.436317327] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778260914.436430132] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778260914.436996566] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260914.438036908] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260914.440124833] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778260914.440174430] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778260914.445071912] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260914.445966020] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260914.477601279] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778260914.477663173] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778260914.534156726] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260914.534581019] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260914.535835489] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778260914.535872288] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778260914.536426851] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260914.536785916] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260914.611654320] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778260914.611706454] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778260914.612468422] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260914.612808653] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260914.632647399] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778260914.632712904] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778260914.635307351] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260914.636015334] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260914.704735063] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778260914.704805809] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778260914.705537960] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260914.705916565] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260914.730962058] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778260914.731025471] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778260914.743998948] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778260914.744469022] [asr.thyra.autopilot]: Goal execution completed.
+[WARN] [1778260921.312225965] [asr.thyra.autopilot]: No GCS input received in the last 1.00 seconds!
+[WARN] [1778260921.312286749] [asr.thyra.autopilot]: Entering safety land mode due to stale GCS input or low battery (charge_remaining=0.78 < threshold=0.05)
+[INFO] [1778260921.312313937] [asr.thyra.autopilot]: Control mode updated to: 2
+[INFO] [1778260921.312327456] [asr.thyra.autopilot]: Position based land mode activated.
+[INFO] [1778260921.637000530] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260921.637444316] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260921.637513619] [asr.thyra.autopilot]: Control loop stopped.
+[INFO] [1778260921.637655078] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260921.640917892] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260921.641295838] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260921.641719325] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260921.642170278] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260921.642423489] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260921.643268964] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260924.191307758] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260924.191645239] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260924.191875653] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260924.192062322] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260924.192313942] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778260924.192664610] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260924.192793588] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260924.193204207] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260924.193319405] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260924.193412507] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260924.193505462] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260924.193618660] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260924.193698354] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778260924.193810885] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778260924.193941436] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778261076.474886328] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778261076.475430793] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778261076.475586897] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778261077.546398739] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778261077.547675703] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778261077.547872032] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778261261.421475798] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778261261.422652000] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778261261.423096039] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778261264.752787184] [asr.thyra.autopilot]: Received goal request with command_type: estop
+[INFO] [1778261264.753147849] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778261264.753323950] [asr.thyra.autopilot]: Goal execution completed.
+                                                                       

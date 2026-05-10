@@ -1,0 +1,142 @@
+INCIDENT ANALYSIS — 2026-05-09 crash flight
+=============================================
+
+The crash flight is in: crash_session_17_34_to_17_55.log
+(Originally: asr_autopilot_4426_1778340887553.log, 26 KB.)
+
+The earlier sessions on the same day (16:52, 16:58, 17:09) are also kept
+for context — they are short and unrelated to the crash.
+
+----------------------------------------------------------------
+TIMELINE OF THE CRASH FLIGHT
+----------------------------------------------------------------
+
+Session start                 17:34:47   autopilot launched, takeoff_height_=-1.50,
+                                          hover_thrust=-0.700, position checks DISABLED
+                                          (see "ROOT CAUSE" below).
+
+17:36:14   set_origin         origin = (-0.03, -0.56,  0.04)   ← z near zero, healthy
+17:36:51 → 17:43:42            Multiple short flights:
+                                arm → takeoff → manual_aided → land → disarm
+                                All completed cleanly. EKF z appears stable.
+
+17:43:42 → 17:44:18            Rapid arm/disarm/takeoff/disarm test cycles
+                                (looks like ground testing on stand).
+
+17:45:38   set_origin         origin = (-3.83,  0.71,  1.26)   ← z = +1.26 m drift
+17:45:41   arm
+17:45:43   takeoff             ← Takeoff #N
+17:45:45   disarm              ← disarmed 1.1 s later (deliberate test?)
+
+17:48:58   set_origin         origin = (-3.88,  0.71,  1.27)   ← still ~+1.27 m
+17:49:00   arm
+17:49:11   takeoff REJECTED   "drone not armed for takeoff"
+                                ← suspicious: arm reported success, but PX4 wasn't armed
+                                  when takeoff was tried 11 s later. Possible PX4 auto-disarm.
+
+17:49:20   arm + manual_aided  ← rapid spam from GUI (~15 goal requests in <1 s),
+17:49:20   arm rejected x12     mostly "drone already armed" rejects.
+17:49:21   Control loop stopped.
+
+17:54:04   arm
+17:54:06   disarm
+17:54:10   arm                 ← cleanup before final attempt
+17:54:13   takeoff             ← *** THE CRASH TAKEOFF ***
+17:54:14   land                ← user pressed Land 0.5 s after takeoff
+17:54:15   land                ← again 0.5 s later
+17:54:16   land                ← again 1.3 s later
+                                All three "land" goals were ACCEPTED and
+                                "Position based land mode activated" was logged.
+
+17:54:21   [WARN] No position or velocity data received!     ← FIRST WARNING
+17:54:27   [WARN] No position or velocity data received!     ← repeated
+17:54:30   [WARN] No position or velocity data received!     ← repeated
+
+(log ends — autopilot was killed when start_base.sh was re-run.)
+
+----------------------------------------------------------------
+KEY FINDINGS
+----------------------------------------------------------------
+
+1. The autopilot DID receive your Land button presses. Three "land" goals
+   were accepted in <2 s, each one entered "Position based land mode."
+   The autopilot was not ignoring you.
+
+2. ~5 seconds after the third Land, the autopilot stopped receiving
+   position/velocity data from PX4 ("No position or velocity data received!").
+   This is the smoking gun. After this point the position controller
+   was running on stale state — it did not know where the drone was.
+
+3. Position data loss most likely means one of:
+     a) MicroXRCEAgent / DDS link to PX4 dropped,
+     b) PX4 entered a mode that stops streaming vehicle_local_position
+        (e.g. its own RTL/LAND failsafe took over from offboard),
+     c) PX4 disarmed/crashed internally.
+   The .ulg from the SD card is needed to discriminate.
+
+4. ROOT CAUSE that turned a glitch into a crash:
+
+   thyra_params.yaml line 58:
+       check_position_timeout: false
+
+   The autopilot has a safety branch that triggers a blind-land when
+   position data goes stale (main.cpp:589-630). It is GATED by this
+   parameter, which is disabled. So when PX4 stopped sending position
+   updates, the autopilot kept commanding setpoints based on a frozen
+   estimate. There was no failsafe.
+
+   For comparison:
+       check_gcs_timeout:      true   ← protected
+       check_position_timeout: false  ← NOT protected
+       check_geofence:         false  ← NOT protected
+       check_battery:          true   ← protected
+
+5. The pre-flight z-origin drifted from 0.04 m (first set_origin of the
+   day) to 1.27 m (last set_origin before the crash). 1.27 m is small,
+   but it confirms the EKF z-reference was sliding over the session and
+   is consistent with running without RTK fix on the rover.
+
+----------------------------------------------------------------
+WHY THE DRONE CLIMBED TO ~25 m
+----------------------------------------------------------------
+
+The log alone cannot prove this — vehicle_local_position is not in this
+log, only autopilot stdout is. But the consistent story is:
+
+  - Set Origin captured a slightly drifted z reference.
+  - Takeoff trajectory was generated for ~1.5 m climb.
+  - PX4 may have hit one of its own failsafes (GPS quality, mode change,
+    or comms) shortly after takeoff. Position stream stopped.
+  - Autopilot's position controller, with check_position_timeout=false,
+    kept producing setpoints from stale position. With integrators wound
+    up and no feedback, it drove thrust hard.
+  - PX4, no longer receiving sane offboard setpoints OR no longer in
+    offboard mode, behaved according to its own state machine.
+  - Drone climbed, hovered, then fell.
+
+This is consistent with the std::min bug at main.cpp:1549 too — that bug
+amplifies any positive error in init_state.position.z(). Both effects
+likely compounded.
+
+----------------------------------------------------------------
+WHAT TO DO BEFORE FLYING AGAIN
+----------------------------------------------------------------
+
+(in priority order)
+
+1. Set check_position_timeout: true in thyra_params.yaml. There is
+   never a reason to disable this on a real flight. This single change
+   would have triggered a safety landing within 0.2 s of position loss.
+
+2. Wait for true RTK Fixed (not survey-in) before flight.
+
+3. Wire an RC kill switch directly to PX4. The ROS stack must not be
+   the only abort path.
+
+4. Pull the .ulg from the FC SD card — it has the actual EKF state and
+   PX4 mode transitions across the failure.
+
+5. Always run `ros2 bag record` on /asr/thyra/out/drone_state,
+   /fmu/out/vehicle_local_position, /fmu/out/vehicle_status,
+   /fmu/out/vehicle_gps_position, /asr/thyra/in/drone_command before
+   flying. That gives a synchronised picture next time.

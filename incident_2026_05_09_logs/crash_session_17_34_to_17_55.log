@@ -1,0 +1,304 @@
+[INFO] [1778340887.595890081] [asr.thyra.autopilot]: Using system time source
+[INFO] [1778340887.599529310] [asr.thyra.autopilot]: Using px4 position source
+[INFO] [1778340887.599761696] [asr.thyra.autopilot]: pitch PID gains: Kp=0.15, Ki=0.01, Kd=0.00
+[INFO] [1778340887.599986526] [asr.thyra.autopilot]: roll PID gains: Kp=0.15, Ki=0.01, Kd=0.00
+[INFO] [1778340887.600124580] [asr.thyra.autopilot]: yaw PID gains: Kp=0.15, Ki=0.00, Kd=0.05
+[INFO] [1778340887.600260874] [asr.thyra.autopilot]: thrust PID gains: Kp=0.50, Ki=0.10, Kd=0.01
+[INFO] [1778340887.600425187] [asr.thyra.autopilot]: Position X PID gains: Kp=1.00, Ki=0.00, Kd=0.01
+[INFO] [1778340887.600760812] [asr.thyra.autopilot]: Position Y PID gains: Kp=1.00, Ki=0.00, Kd=0.01
+[INFO] [1778340887.600947050] [asr.thyra.autopilot]: Position Z PID gains: Kp=1.00, Ki=0.00, Kd=0.01
+[INFO] [1778340887.601025179] [asr.thyra.autopilot]: Controller EMA filter alpha: 0.15
+[INFO] [1778340887.601254491] [asr.thyra.autopilot]: Motion constraints (path planner & controller):
+  min_linear_velocity     = 0.10 m/s
+  min_angular_velocity    = 0.10 rad/s
+  max_linear_velocity     = 1.50 m/s
+  max_angular_velocity    = 1.50 rad/s
+  max_tilt_angle          = 20.0 degrees (0.349 rad)
+  default_linear_velocity = 0.40 m/s
+  default_angular_velocity= 0.50 rad/s
+[INFO] [1778340887.601292750] [asr.thyra.autopilot]: Controller velocity saturation:
+  max_horizontal_velocity = 1.50 m/s
+  max_vertical_velocity   = 1.50 m/s
+[INFO] [1778340887.601825613] [asr.thyra.autopilot]: Safety parameters:
+  gcs_timeout            = 1.00 s
+  position_timeout       = 0.20 s
+  safety_thrust_initial  = -0.72
+  safety_thrust_final    = -0.65
+  safety_thrustdown_rate = 0.4000
+  check_battery          = true
+  battery_threshold      = 0.05
+  check_geofence         = false
+  geofence_radius        = 20.00 m
+  geofence_height        = 10.00 m
+  do_mode_change_delay   = false
+  mode_change_delay      = 5.00 s
+[INFO] [1778340887.602007444] [asr.thyra.autopilot]: Lidar offset: 0.00
+[INFO] [1778340887.602030277] [asr.thyra.autopilot]: Takeoff height: -1.50
+[INFO] [1778340887.602043517] [asr.thyra.autopilot]: Motor speed min: 1000.00
+[INFO] [1778340887.602059647] [asr.thyra.autopilot]: Motor speed max: 1900.00
+[INFO] [1778340887.602175553] [asr.thyra.autopilot]: Hover thrust estimate: -0.700
+[INFO] [1778340887.602198534] [asr.thyra.autopilot]: Hover thrust learning rate: 0.000100
+[INFO] [1778340974.273786786] [asr.thyra.autopilot]: Received goal request with command_type: set_origin
+[INFO] [1778340974.274410999] [asr.thyra.autopilot]: Origin set to current position: (-0.03, -0.56, 0.04)
+[INFO] [1778340974.274673421] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341020.867241638] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778341020.867858461] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778341020.868131920] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341020.932843245] [asr.thyra.autopilot]: Received goal request with command_type: takeoff
+[INFO] [1778341020.935163393] [asr.thyra.autopilot]: Control mode updated to: 2
+[INFO] [1778341020.935332057] [asr.thyra.autopilot]: Control loop started with mode: 2
+[INFO] [1778341020.941824526] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341035.671802431] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778341035.672184462] [asr.thyra.autopilot]: Control mode updated to: 1
+[INFO] [1778341035.672371737] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341066.667866238] [asr.thyra.autopilot]: Received goal request with command_type: land
+[INFO] [1778341066.668297619] [asr.thyra.autopilot]: Control mode updated to: 2
+[INFO] [1778341066.668336952] [asr.thyra.autopilot]: Position based land mode activated.
+[INFO] [1778341066.669189030] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341067.756025855] [asr.thyra.autopilot]: Drone has landed, disarming...
+[INFO] [1778341067.756444608] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778341067.760242692] [asr.thyra.autopilot]: Control loop stopped.
+[INFO] [1778341139.939585403] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778341139.941683459] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778341139.942697126] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341139.986807199] [asr.thyra.autopilot]: Received goal request with command_type: takeoff
+[INFO] [1778341139.987338431] [asr.thyra.autopilot]: Control loop started with mode: 2
+[INFO] [1778341139.988354468] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341151.887517984] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778341151.889504004] [asr.thyra.autopilot]: Control mode updated to: 1
+[INFO] [1778341151.889727796] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341168.291550182] [asr.thyra.autopilot]: Received goal request with command_type: land
+[INFO] [1778341168.295140914] [asr.thyra.autopilot]: Control mode updated to: 2
+[INFO] [1778341168.295356762] [asr.thyra.autopilot]: Position based land mode activated.
+[INFO] [1778341168.298032306] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341169.337462543] [asr.thyra.autopilot]: Drone has landed, disarming...
+[INFO] [1778341169.338023866] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778341169.338380489] [asr.thyra.autopilot]: Control loop stopped.
+[INFO] [1778341198.734412944] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778341198.735061821] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778341198.735299761] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341198.785307870] [asr.thyra.autopilot]: Received goal request with command_type: takeoff
+[INFO] [1778341198.785814287] [asr.thyra.autopilot]: Control loop started with mode: 2
+[INFO] [1778341198.787017062] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341205.435047419] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778341205.435416079] [asr.thyra.autopilot]: Control mode updated to: 1
+[INFO] [1778341205.435608854] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341246.985061749] [asr.thyra.autopilot]: Received goal request with command_type: land
+[INFO] [1778341246.985609258] [asr.thyra.autopilot]: Control mode updated to: 2
+[INFO] [1778341246.985647146] [asr.thyra.autopilot]: Position based land mode activated.
+[INFO] [1778341246.986501963] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341248.076146592] [asr.thyra.autopilot]: Drone has landed, disarming...
+[INFO] [1778341248.077245312] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778341248.077765654] [asr.thyra.autopilot]: Control loop stopped.
+[INFO] [1778341316.379551579] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778341316.380113883] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778341316.380370359] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341316.434591352] [asr.thyra.autopilot]: Received goal request with command_type: takeoff
+[INFO] [1778341316.435274099] [asr.thyra.autopilot]: Control loop started with mode: 2
+[INFO] [1778341316.436403799] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341319.978590649] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778341319.979108695] [asr.thyra.autopilot]: Control mode updated to: 1
+[INFO] [1778341319.979277173] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341370.189654538] [asr.thyra.autopilot]: Received goal request with command_type: land
+[INFO] [1778341370.191120344] [asr.thyra.autopilot]: Control mode updated to: 2
+[INFO] [1778341370.191264970] [asr.thyra.autopilot]: Position based land mode activated.
+[INFO] [1778341370.195609443] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341371.295524757] [asr.thyra.autopilot]: Drone has landed, disarming...
+[INFO] [1778341371.296267539] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778341371.296584533] [asr.thyra.autopilot]: Control loop stopped.
+[INFO] [1778341411.360500516] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778341411.362137206] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778341411.362982709] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341411.408550014] [asr.thyra.autopilot]: Received goal request with command_type: takeoff
+[INFO] [1778341411.408997802] [asr.thyra.autopilot]: Control loop started with mode: 2
+[INFO] [1778341411.410160446] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341436.657941064] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778341436.658323816] [asr.thyra.autopilot]: Control mode updated to: 1
+[INFO] [1778341436.658510461] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341492.508117073] [asr.thyra.autopilot]: Received goal request with command_type: land
+[INFO] [1778341492.508592860] [asr.thyra.autopilot]: Control mode updated to: 2
+[INFO] [1778341492.508639526] [asr.thyra.autopilot]: Position based land mode activated.
+[INFO] [1778341492.509659913] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341493.609397136] [asr.thyra.autopilot]: Drone has landed, disarming...
+[INFO] [1778341493.609783425] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778341493.609904515] [asr.thyra.autopilot]: Control loop stopped.
+[INFO] [1778341524.392723891] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778341524.393389619] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778341524.394102346] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341524.447110232] [asr.thyra.autopilot]: Received goal request with command_type: takeoff
+[INFO] [1778341524.448648109] [asr.thyra.autopilot]: Control loop started with mode: 2
+[INFO] [1778341524.449627497] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341538.563119299] [asr.thyra.autopilot]: Received goal request with command_type: land
+[INFO] [1778341538.563443793] [asr.thyra.autopilot]: Position based land mode activated.
+[INFO] [1778341538.564230203] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341540.121850978] [asr.thyra.autopilot]: Drone has landed, disarming...
+[INFO] [1778341540.122415115] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778341540.122661203] [asr.thyra.autopilot]: Control loop stopped.
+[INFO] [1778341634.638897506] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778341634.639328738] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778341634.639553160] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341636.034745136] [asr.thyra.autopilot]: Received goal request with command_type: disarm
+[INFO] [1778341636.035132166] [asr.thyra.autopilot]: Sending disarm command (kill=0)...
+[INFO] [1778341636.035345680] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341640.036753319] [asr.thyra.autopilot]: Received goal request with command_type: takeoff
+[WARN] [1778341640.036812947] [asr.thyra.autopilot]: Rejected: drone not armed for takeoff.
+[INFO] [1778341643.268908746] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778341643.270002650] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778341643.270590231] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341647.198728690] [asr.thyra.autopilot]: Received goal request with command_type: takeoff
+[INFO] [1778341647.199117072] [asr.thyra.autopilot]: Control loop started with mode: 2
+[INFO] [1778341647.200081034] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341648.339684760] [asr.thyra.autopilot]: Received goal request with command_type: disarm
+[INFO] [1778341648.340468245] [asr.thyra.autopilot]: Sending disarm command (kill=0)...
+[INFO] [1778341648.340585390] [asr.thyra.autopilot]: Control loop stopped.
+[INFO] [1778341648.340781738] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341651.151617008] [asr.thyra.autopilot]: Received goal request with command_type: takeoff
+[INFO] [1778341651.152000315] [asr.thyra.autopilot]: Control loop started with mode: 2
+[INFO] [1778341651.152929537] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341652.801641840] [asr.thyra.autopilot]: Received goal request with command_type: disarm
+[INFO] [1778341652.802111442] [asr.thyra.autopilot]: Sending disarm command (kill=0)...
+[INFO] [1778341652.802230588] [asr.thyra.autopilot]: Control loop stopped.
+[INFO] [1778341652.802446972] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341654.206171745] [asr.thyra.autopilot]: Received goal request with command_type: disarm
+[INFO] [1778341654.206582922] [asr.thyra.autopilot]: Sending disarm command (kill=0)...
+[INFO] [1778341654.206786862] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341689.530343986] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778341689.530766236] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778341689.530993407] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341693.162172074] [asr.thyra.autopilot]: Received goal request with command_type: takeoff
+[INFO] [1778341693.162719826] [asr.thyra.autopilot]: Control loop started with mode: 2
+[INFO] [1778341693.163683199] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341697.174868807] [asr.thyra.autopilot]: Received goal request with command_type: goto
+[INFO] [1778341697.178493069] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341697.922999415] [asr.thyra.autopilot]: Received goal request with command_type: land
+[INFO] [1778341697.926210279] [asr.thyra.autopilot]: Position based land mode activated.
+[INFO] [1778341697.933450229] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341698.102878848] [asr.thyra.autopilot]: Drone has landed, disarming...
+[INFO] [1778341698.103124131] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[INFO] [1778341698.103346080] [asr.thyra.autopilot]: Control loop stopped.
+[INFO] [1778341700.825391084] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778341700.826574350] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778341700.827031248] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341701.646678558] [asr.thyra.autopilot]: Received goal request with command_type: disarm
+[INFO] [1778341701.647285737] [asr.thyra.autopilot]: Sending disarm command (kill=0)...
+[INFO] [1778341701.647522501] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341702.504010810] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778341702.504877643] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778341702.505094111] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341705.089257797] [asr.thyra.autopilot]: Received goal request with command_type: disarm
+[INFO] [1778341705.089728418] [asr.thyra.autopilot]: Sending disarm command (kill=0)...
+[INFO] [1778341705.089961978] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341716.407868253] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778341716.409728679] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778341716.410071445] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341718.243005821] [asr.thyra.autopilot]: Received goal request with command_type: disarm
+[INFO] [1778341718.244279568] [asr.thyra.autopilot]: Sending disarm command (kill=0)...
+[INFO] [1778341718.244740021] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341838.840122759] [asr.thyra.autopilot]: Received goal request with command_type: set_origin
+[INFO] [1778341838.840466949] [asr.thyra.autopilot]: Origin set to current position: (-3.83, 0.71, 1.26)
+[INFO] [1778341838.840617765] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341841.265183909] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778341841.266512222] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778341841.266841300] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341843.954658702] [asr.thyra.autopilot]: Received goal request with command_type: takeoff
+[INFO] [1778341843.955119523] [asr.thyra.autopilot]: Control loop started with mode: 2
+[INFO] [1778341843.955974348] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341845.055656375] [asr.thyra.autopilot]: Received goal request with command_type: disarm
+[INFO] [1778341845.056081269] [asr.thyra.autopilot]: Sending disarm command (kill=0)...
+[INFO] [1778341845.056192937] [asr.thyra.autopilot]: Control loop stopped.
+[INFO] [1778341845.056395254] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341938.121907849] [asr.thyra.autopilot]: Received goal request with command_type: set_origin
+[INFO] [1778341938.122182370] [asr.thyra.autopilot]: Origin set to current position: (-3.88, 0.71, 1.27)
+[INFO] [1778341938.122308426] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341940.608150346] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778341940.609341355] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778341940.609876192] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341951.978101251] [asr.thyra.autopilot]: Received goal request with command_type: takeoff
+[WARN] [1778341951.978227530] [asr.thyra.autopilot]: Rejected: drone not armed for takeoff.
+[INFO] [1778341960.009748693] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778341960.010128788] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778341960.010204659] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778341960.010454031] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341960.010649810] [asr.thyra.autopilot]: Control mode updated to: 1
+[INFO] [1778341960.010796367] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341960.029483247] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778341960.030056547] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778341960.030297826] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341960.032282228] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778341960.032881417] [asr.thyra.autopilot]: Control loop started with mode: 1
+[INFO] [1778341960.033062122] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341960.040582467] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778341960.040646523] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778341960.043941359] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778341960.044317214] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341960.093996221] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778341960.094170296] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778341960.097043537] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778341960.097471428] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341960.191482871] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778341960.191580501] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778341960.192046226] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778341960.192556285] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341960.197770671] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778341960.197833875] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778341960.200977877] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778341960.201376454] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341960.257557781] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778341960.257637726] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778341960.260805191] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778341960.261217304] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341960.325128811] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778341960.325410035] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778341960.326030002] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778341960.327396048] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341960.487652179] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778341960.487752717] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778341960.488174220] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778341960.488600834] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341960.488627760] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778341960.488925502] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778341960.489213949] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778341960.489574618] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778341960.489621007] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778341960.489785230] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778341960.490276048] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341960.490581717] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341960.527740606] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778341960.527818662] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778341960.528004719] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778341960.528788761] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341960.562148199] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778341960.562356238] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778341960.563371077] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778341960.564493844] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341960.625943076] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[WARN] [1778341960.626043780] [asr.thyra.autopilot]: Rejected: drone already armed.
+[INFO] [1778341960.627862329] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[INFO] [1778341960.628283331] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778341961.805643909] [asr.thyra.autopilot]: Control loop stopped.
+[INFO] [1778342044.497894977] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778342044.498354330] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778342044.498600090] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778342046.681128975] [asr.thyra.autopilot]: Received goal request with command_type: disarm
+[INFO] [1778342046.681544903] [asr.thyra.autopilot]: Sending disarm command (kill=0)...
+[INFO] [1778342046.681970274] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778342050.922615035] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778342050.923039574] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778342050.923239852] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778342053.953820551] [asr.thyra.autopilot]: Received goal request with command_type: takeoff
+[INFO] [1778342053.954149608] [asr.thyra.autopilot]: Control mode updated to: 2
+[INFO] [1778342053.954219201] [asr.thyra.autopilot]: Control loop started with mode: 2
+[INFO] [1778342053.955186222] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778342054.521071535] [asr.thyra.autopilot]: Received goal request with command_type: land
+[INFO] [1778342054.524500082] [asr.thyra.autopilot]: Position based land mode activated.
+[INFO] [1778342054.525723604] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778342055.002504203] [asr.thyra.autopilot]: Received goal request with command_type: land
+[INFO] [1778342055.002829629] [asr.thyra.autopilot]: Position based land mode activated.
+[INFO] [1778342055.003662465] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778342056.342330166] [asr.thyra.autopilot]: Received goal request with command_type: land
+[INFO] [1778342056.343058705] [asr.thyra.autopilot]: Position based land mode activated.
+[INFO] [1778342056.344804432] [asr.thyra.autopilot]: Goal execution completed.
+[WARN] [1778342061.465072608] [asr.thyra.autopilot]: No position or velocity data received!
+[WARN] [1778342067.012907552] [asr.thyra.autopilot]: No position or velocity data received!
+[WARN] [1778342070.120324042] [asr.thyra.autopilot]: No position or velocity data received!
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     

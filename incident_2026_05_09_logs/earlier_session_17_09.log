@@ -1,0 +1,77 @@
+[INFO] [1778339357.791592391] [asr.thyra.autopilot]: Using system time source
+[INFO] [1778339357.792183512] [asr.thyra.autopilot]: Using px4 position source
+[INFO] [1778339357.792629294] [asr.thyra.autopilot]: pitch PID gains: Kp=0.15, Ki=0.01, Kd=0.00
+[INFO] [1778339357.793100509] [asr.thyra.autopilot]: roll PID gains: Kp=0.15, Ki=0.01, Kd=0.00
+[INFO] [1778339357.793917179] [asr.thyra.autopilot]: yaw PID gains: Kp=0.15, Ki=0.00, Kd=0.05
+[INFO] [1778339357.794342733] [asr.thyra.autopilot]: thrust PID gains: Kp=0.50, Ki=0.10, Kd=0.01
+[INFO] [1778339357.794778789] [asr.thyra.autopilot]: Position X PID gains: Kp=1.00, Ki=0.00, Kd=0.01
+[INFO] [1778339357.795322859] [asr.thyra.autopilot]: Position Y PID gains: Kp=1.00, Ki=0.00, Kd=0.01
+[INFO] [1778339357.795645030] [asr.thyra.autopilot]: Position Z PID gains: Kp=1.00, Ki=0.00, Kd=0.01
+[INFO] [1778339357.795735779] [asr.thyra.autopilot]: Controller EMA filter alpha: 0.15
+[INFO] [1778339357.796028849] [asr.thyra.autopilot]: Motion constraints (path planner & controller):
+  min_linear_velocity     = 0.10 m/s
+  min_angular_velocity    = 0.10 rad/s
+  max_linear_velocity     = 1.50 m/s
+  max_angular_velocity    = 1.50 rad/s
+  max_tilt_angle          = 20.0 degrees (0.349 rad)
+  default_linear_velocity = 0.40 m/s
+  default_angular_velocity= 0.50 rad/s
+[INFO] [1778339357.796078641] [asr.thyra.autopilot]: Controller velocity saturation:
+  max_horizontal_velocity = 1.50 m/s
+  max_vertical_velocity   = 1.50 m/s
+[INFO] [1778339357.796415279] [asr.thyra.autopilot]: Safety parameters:
+  gcs_timeout            = 1.00 s
+  position_timeout       = 0.20 s
+  safety_thrust_initial  = -0.72
+  safety_thrust_final    = -0.65
+  safety_thrustdown_rate = 0.4000
+  check_battery          = true
+  battery_threshold      = 0.05
+  check_geofence         = false
+  geofence_radius        = 20.00 m
+  geofence_height        = 10.00 m
+  do_mode_change_delay   = false
+  mode_change_delay      = 5.00 s
+[INFO] [1778339357.796633307] [asr.thyra.autopilot]: Lidar offset: 0.00
+[INFO] [1778339357.796659593] [asr.thyra.autopilot]: Takeoff height: -1.50
+[INFO] [1778339357.796679562] [asr.thyra.autopilot]: Motor speed min: 1000.00
+[INFO] [1778339357.796702736] [asr.thyra.autopilot]: Motor speed max: 1900.00
+[INFO] [1778339357.796804414] [asr.thyra.autopilot]: Hover thrust estimate: -0.700
+[INFO] [1778339357.796824105] [asr.thyra.autopilot]: Hover thrust learning rate: 0.000100
+[INFO] [1778339378.123937435] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778339378.124690695] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778339378.125201746] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778339384.207495193] [asr.thyra.autopilot]: Received goal request with command_type: disarm
+[INFO] [1778339384.210018013] [asr.thyra.autopilot]: Sending disarm command (kill=0)...
+[INFO] [1778339384.210684575] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778339669.478650931] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778339669.479743992] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778339669.480127988] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778339670.745720785] [asr.thyra.autopilot]: Received goal request with command_type: disarm
+[INFO] [1778339670.746129319] [asr.thyra.autopilot]: Sending disarm command (kill=0)...
+[INFO] [1778339670.746297400] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778339731.247073395] [asr.thyra.autopilot]: Received goal request with command_type: set_origin
+[INFO] [1778339731.247560265] [asr.thyra.autopilot]: Origin set to current position: (0.01, -0.00, 0.09)
+[INFO] [1778339731.247758643] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778339762.079923558] [asr.thyra.autopilot]: Received goal request with command_type: set_origin
+[INFO] [1778339762.080547230] [asr.thyra.autopilot]: Origin set to current position: (1.52, 2.92, -0.65)
+[INFO] [1778339762.080706532] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778340293.502476137] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778340293.502922779] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778340293.503111413] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778340294.383640670] [asr.thyra.autopilot]: Received goal request with command_type: disarm
+[INFO] [1778340294.384240093] [asr.thyra.autopilot]: Sending disarm command (kill=0)...
+[INFO] [1778340294.384526360] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778340670.083227601] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778340670.083718802] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778340670.083945486] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778340670.786937267] [asr.thyra.autopilot]: Received goal request with command_type: disarm
+[INFO] [1778340670.788720741] [asr.thyra.autopilot]: Sending disarm command (kill=0)...
+[INFO] [1778340670.790158216] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778340817.367521271] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778340817.368005136] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778340817.368199968] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778340818.298050155] [asr.thyra.autopilot]: Received goal request with command_type: disarm
+[INFO] [1778340818.300141910] [asr.thyra.autopilot]: Sending disarm command (kill=0)...
+[INFO] [1778340818.300549664] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778340828.678011842] [rclcpp]: signal_handler(SIGINT/SIGTERM)

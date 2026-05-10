@@ -1,0 +1,44 @@
+[INFO] [1778167390.577587583] [asr.thyra.autopilot]: Using system time source
+[INFO] [1778167390.577790004] [asr.thyra.autopilot]: Using px4 position source
+[INFO] [1778167390.577886428] [asr.thyra.autopilot]: pitch PID gains: Kp=0.15, Ki=0.01, Kd=0.00
+[INFO] [1778167390.577997460] [asr.thyra.autopilot]: roll PID gains: Kp=0.15, Ki=0.01, Kd=0.00
+[INFO] [1778167390.578083813] [asr.thyra.autopilot]: yaw PID gains: Kp=0.15, Ki=0.00, Kd=0.05
+[INFO] [1778167390.578180866] [asr.thyra.autopilot]: thrust PID gains: Kp=0.50, Ki=0.10, Kd=0.01
+[INFO] [1778167390.578265552] [asr.thyra.autopilot]: Position X PID gains: Kp=1.00, Ki=0.00, Kd=0.01
+[INFO] [1778167390.578353219] [asr.thyra.autopilot]: Position Y PID gains: Kp=1.00, Ki=0.00, Kd=0.01
+[INFO] [1778167390.579541507] [asr.thyra.autopilot]: Position Z PID gains: Kp=1.00, Ki=0.00, Kd=0.01
+[INFO] [1778167390.579690976] [asr.thyra.autopilot]: Controller EMA filter alpha: 0.15
+[INFO] [1778167390.579901617] [asr.thyra.autopilot]: Motion constraints (path planner & controller):
+  min_linear_velocity     = 0.10 m/s
+  min_angular_velocity    = 0.10 rad/s
+  max_linear_velocity     = 1.50 m/s
+  max_angular_velocity    = 1.50 rad/s
+  max_tilt_angle          = 20.0 degrees (0.349 rad)
+  default_linear_velocity = 0.40 m/s
+  default_angular_velocity= 0.50 rad/s
+[INFO] [1778167390.579935165] [asr.thyra.autopilot]: Controller velocity saturation:
+  max_horizontal_velocity = 1.50 m/s
+  max_vertical_velocity   = 1.50 m/s
+[INFO] [1778167390.580270688] [asr.thyra.autopilot]: Safety parameters:
+  gcs_timeout            = 1.00 s
+  position_timeout       = 0.20 s
+  safety_thrust_initial  = -0.72
+  safety_thrust_final    = -0.65
+  safety_thrustdown_rate = 0.4000
+  check_battery          = true
+  battery_threshold      = 0.05
+  check_geofence         = false
+  geofence_radius        = 20.00 m
+  geofence_height        = 10.00 m
+  do_mode_change_delay   = false
+  mode_change_delay      = 5.00 s
+[INFO] [1778167390.580427432] [asr.thyra.autopilot]: Lidar offset: 0.00
+[INFO] [1778167390.580497510] [asr.thyra.autopilot]: Takeoff height: -1.50
+[INFO] [1778167390.580512618] [asr.thyra.autopilot]: Motor speed min: 1000.00
+[INFO] [1778167390.580524949] [asr.thyra.autopilot]: Motor speed max: 1900.00
+[INFO] [1778167390.580608506] [asr.thyra.autopilot]: Hover thrust estimate: -0.700
+[INFO] [1778167390.580624761] [asr.thyra.autopilot]: Hover thrust learning rate: 0.000100
+[INFO] [1778167394.521988253] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[INFO] [1778167394.522595519] [asr.thyra.autopilot]: Sending arm command...
+[INFO] [1778167394.523564935] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1778167740.014377935] [rclcpp]: signal_handler(SIGINT/SIGTERM)
