@@ -153,6 +153,12 @@ class KpiLoggerSim(Node):
         engagement_s = (now_ns - self.first_lock_ns) / 1e9 if self.first_lock_ns else 0.0
         alt = float(st.get('altitude_m', 0.0))
 
+        # Commanded velocity vector (added for gain-tuning analysis)
+        last_cmd_pitch   = float(st.get('last_cmd_pitch',   0.0))
+        last_cmd_roll    = float(st.get('last_cmd_roll',    0.0))
+        last_cmd_yaw_vel = float(st.get('last_cmd_yaw_vel', 0.0))
+        last_cmd_thrust  = float(st.get('last_cmd_thrust',  0.0))
+
         self.rows.append({
             'time_ms':                time_ms,
             'linear_error_m':         f'{linear_err:.4f}',
@@ -164,6 +170,10 @@ class KpiLoggerSim(Node):
             'target_y':               f'{ty:.4f}',
             'altitude_m':             f'{alt:.3f}',
             'state':                  st.get('state', ''),
+            'last_cmd_pitch':         f'{last_cmd_pitch:.4f}',
+            'last_cmd_roll':          f'{last_cmd_roll:.4f}',
+            'last_cmd_yaw_vel':       f'{last_cmd_yaw_vel:.4f}',
+            'last_cmd_thrust':        f'{last_cmd_thrust:.4f}',
         })
 
     def _record_final_row(self, st: dict):
@@ -189,7 +199,9 @@ class KpiLoggerSim(Node):
                     'linear_error_m', 'rotation_error_deg',
                     'engagement_duration_s',
                     'drone_x', 'drone_y', 'target_x', 'target_y',
-                    'altitude_m', 'state'])
+                    'altitude_m', 'state',
+                    'last_cmd_pitch', 'last_cmd_roll',
+                    'last_cmd_yaw_vel', 'last_cmd_thrust'])
                 for row in self.rows:
                     writer.writerow([
                         row['time_ms'], self.mode_tag, self.scenario_tag,
@@ -198,7 +210,9 @@ class KpiLoggerSim(Node):
                         row['engagement_duration_s'],
                         row['drone_x'], row['drone_y'],
                         row['target_x'], row['target_y'],
-                        row['altitude_m'], row['state']])
+                        row['altitude_m'], row['state'],
+                        row['last_cmd_pitch'], row['last_cmd_roll'],
+                        row['last_cmd_yaw_vel'], row['last_cmd_thrust']])
 
             last = self.rows[-1] if self.rows else None
             if last:

@@ -177,8 +177,10 @@ class VisionLandingMission(Node):
         self.gimbal_angle_norm = 0.0
 
         # Last commanded velocity (kept for state publisher visibility)
-        self.last_cmd_pitch = 0.0
-        self.last_cmd_roll  = 0.0
+        self.last_cmd_pitch   = 0.0
+        self.last_cmd_roll    = 0.0
+        self.last_cmd_yaw_vel = 0.0
+        self.last_cmd_thrust  = 0.0
 
         # Lock-loss bookkeeping for HOLD state
         self.lock_loss_start = None
@@ -252,8 +254,10 @@ class VisionLandingMission(Node):
         self.cmd_client.send_goal_async(goal)
 
     def _send_vel(self, pitch=0.0, roll=0.0, yaw_vel=0.0, thrust=0.0):
-        self.last_cmd_pitch = pitch
-        self.last_cmd_roll  = roll
+        self.last_cmd_pitch   = pitch
+        self.last_cmd_roll    = roll
+        self.last_cmd_yaw_vel = yaw_vel
+        self.last_cmd_thrust  = thrust
         msg = ManualControlInput()
         msg.pitch        = max(-1.0, min(1.0, pitch))
         msg.roll         = max(-1.0, min(1.0, roll))
@@ -587,6 +591,8 @@ class VisionLandingMission(Node):
             'gimbal_norm':      float(self.gimbal_angle_norm),
             'last_cmd_pitch':   float(self.last_cmd_pitch),
             'last_cmd_roll':    float(self.last_cmd_roll),
+            'last_cmd_yaw_vel': float(self.last_cmd_yaw_vel),
+            'last_cmd_thrust':  float(self.last_cmd_thrust),
             'relative_yaw_deg': float(self.relative_yaw_deg),
             'first_lock_ns':    int(first_lock_ns),
             'now_ns':           int(self.get_clock().now().nanoseconds),

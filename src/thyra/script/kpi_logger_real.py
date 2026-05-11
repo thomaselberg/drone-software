@@ -131,11 +131,11 @@ class KpiLoggerReal(Node):
         d_yaw = float(self.latest_drone.orientation[2]) if (
             self.latest_drone and len(self.latest_drone.orientation) >= 3) else 0.0
 
-        # Prefer altitude from local_pos if available (more precise than mission state)
-        if self.latest_lpos is not None:
-            alt = float(-self.latest_lpos.z)
-        else:
-            alt = float(st.get('altitude_m', 0.0))
+        # Trust the publisher of /asr/mission/state for altitude.
+        # In real flight the mission publishes -local_pos.z. In bench dry test
+        # the bench publishes virt_alt. Using a single source means the CSV
+        # always reflects what the controller is actually working against.
+        alt = float(st.get('altitude_m', 0.0))
 
         px_x = float(st.get('pixel_err_x', 0.0))
         px_y = float(st.get('pixel_err_y', 0.0))
@@ -144,18 +144,28 @@ class KpiLoggerReal(Node):
         locked = bool(st.get('locked', False))
         state = st.get('state', '')
 
+        # Commanded velocity vector (NEW — needed for tuning / bench analysis)
+        last_cmd_pitch   = float(st.get('last_cmd_pitch',   0.0))
+        last_cmd_roll    = float(st.get('last_cmd_roll',    0.0))
+        last_cmd_yaw_vel = float(st.get('last_cmd_yaw_vel', 0.0))
+        last_cmd_thrust  = float(st.get('last_cmd_thrust',  0.0))
+
         self.rows.append({
-            'time_ms':       time_ms,
-            'drone_x':       f'{dx:.4f}',
-            'drone_y':       f'{dy:.4f}',
-            'drone_yaw_rad': f'{d_yaw:.4f}',
-            'altitude_m':    f'{alt:.3f}',
-            'pixel_err_x':   f'{px_x:.4f}',
-            'pixel_err_y':   f'{px_y:.4f}',
-            'ground_err_m':  f'{ground_err:.4f}',
-            'gimbal_norm':   f'{gimbal_norm:.3f}',
-            'locked':        '1' if locked else '0',
-            'state':         state,
+            'time_ms':          time_ms,
+            'drone_x':          f'{dx:.4f}',
+            'drone_y':          f'{dy:.4f}',
+            'drone_yaw_rad':    f'{d_yaw:.4f}',
+            'altitude_m':       f'{alt:.3f}',
+            'pixel_err_x':      f'{px_x:.4f}',
+            'pixel_err_y':      f'{px_y:.4f}',
+            'ground_err_m':     f'{ground_err:.4f}',
+            'gimbal_norm':      f'{gimbal_norm:.3f}',
+            'locked':           '1' if locked else '0',
+            'state':            state,
+            'last_cmd_pitch':   f'{last_cmd_pitch:.4f}',
+            'last_cmd_roll':    f'{last_cmd_roll:.4f}',
+            'last_cmd_yaw_vel': f'{last_cmd_yaw_vel:.4f}',
+            'last_cmd_thrust':  f'{last_cmd_thrust:.4f}',
         })
 
     # ── CSV writer ────────────────────────────────────────────────────
@@ -176,13 +186,17 @@ class KpiLoggerReal(Node):
                     'time_ms', 'scenario',
                     'drone_x', 'drone_y', 'drone_yaw_rad', 'altitude_m',
                     'pixel_err_x', 'pixel_err_y', 'ground_err_m',
-                    'gimbal_norm', 'locked', 'state'])
+                    'gimbal_norm', 'locked', 'state',
+                    'last_cmd_pitch', 'last_cmd_roll',
+                    'last_cmd_yaw_vel', 'last_cmd_thrust'])
                 for row in self.rows:
                     writer.writerow([
                         row['time_ms'], self.scenario_tag,
                         row['drone_x'], row['drone_y'], row['drone_yaw_rad'], row['altitude_m'],
                         row['pixel_err_x'], row['pixel_err_y'], row['ground_err_m'],
-                        row['gimbal_norm'], row['locked'], row['state']])
+                        row['gimbal_norm'], row['locked'], row['state'],
+                        row['last_cmd_pitch'], row['last_cmd_roll'],
+                        row['last_cmd_yaw_vel'], row['last_cmd_thrust']])
 
             self.get_logger().info(
                 f'KPI saved → {filepath}  ({len(self.rows)} rows)')
