@@ -44,6 +44,8 @@ from geometry_msgs.msg import Vector3Stamped, TwistStamped
 from std_msgs.msg import Float64, String
 from px4_msgs.msg import VehicleLocalPosition
 
+from thyra.mission_params import MissionParams
+
 import json
 import math
 import time
@@ -72,48 +74,34 @@ _TRACKING_STATES = (
 
 
 class VisionLandingMission(Node):
-    """Single state-machine mission used by both sim and real flight."""
+    """Single state-machine mission used by both sim and real flight.
 
-    # ── Tuning constants ──────────────────────────────────────────────
-    # Gains are intentionally lower than the original sim defaults.
-    KP_HIGH           = 0.10   # STABILIZE_HIGH (gentle settling at altitude)
-    KP_LOW            = 0.30   # DESCEND_TO_LOW / STABILIZE_LOW / TERMINAL_LAND
-    KP_ALT            = 0.30
-    KP_YAW            = 0.02
-    MAX_VEL           = 1.0    # Must match autopilot max_horizontal_velocity
-
-    # Behavior constants
-    STABILIZE_HIGH_TIMEOUT = 10.0   # Convergence timeout (s) — same as old sim
-    STABILIZE_HIGH_ERR     = 0.5    # Ground-error convergence target (m)
-    STABILIZE_LOW_TIME     = 1.0    # Hover dwell at low alt before terminal land
-    SLANT_SWEEP_TIME       = 5.0    # Gimbal slant sweep duration
-    BLIND_PLUNGE_VZ        = 0.5    # STATIC mode dead-reckon plunge speed
-    HOLD_HOVER_S           = 5.0    # Lock-loss: seconds of hover before descent
-    SEARCH_KP              = 0.5    # P gain for fly-toward in STATIC SEARCH
+    All tuning constants (gains, altitudes, dwell times, thresholds) live in
+    thyra.mission_params.MissionParams. Each field is also exposed as a ROS
+    parameter so it can be overridden from the launcher with --ros-args -p.
+    Bench_dry_test.py uses the same dataclass for byte-identical numbers.
+    """
 
     def __init__(self):
         super().__init__('vision_landing_mission')
 
-        # ── Parameters ────────────────────────────────────────────────
+        # ── Runtime config (mission identity, not tuning) ─────────────
         self.declare_parameter('mode', 'GIMBAL')
         self.declare_parameter('scenario', 'DYNAMIC')
         self.declare_parameter('wind_scenario', 'none')
-        self.declare_parameter('takeoff_alt', 1.5)           # metres, positive up
-        self.declare_parameter('descend_alt', 0.5)           # metres
-        self.declare_parameter('terminal_alt_trigger', 0.4)  # metres → hand off to PX4 land
-        self.declare_parameter('descend_vz', 0.3)            # m/s downward
-        self.declare_parameter('target_start_x', 1.0)        # known marker N (STATIC)
-        self.declare_parameter('target_start_y', 0.0)        # known marker E (STATIC)
 
-        self.mode           = self.get_parameter('mode').value.upper()
-        self.scenario       = self.get_parameter('scenario').value.upper()
-        self.wind_scenario  = self.get_parameter('wind_scenario').value
-        self.takeoff_alt    = float(self.get_parameter('takeoff_alt').value)
-        self.descend_alt    = float(self.get_parameter('descend_alt').value)
-        self.terminal_trig  = float(self.get_parameter('terminal_alt_trigger').value)
-        self.descend_vz     = float(self.get_parameter('descend_vz').value)
-        self.target_start_x = float(self.get_parameter('target_start_x').value)
-        self.target_start_y = float(self.get_parameter('target_start_y').value)
+        self.mode          = self.get_parameter('mode').value.upper()
+        self.scenario      = self.get_parameter('scenario').value.upper()
+        self.wind_scenario = self.get_parameter('wind_scenario').value
+
+        # ── Tuning params (all MissionParams fields are ROS-overridable) ─
+        defaults = MissionParams()
+        for field_name in defaults.__dataclass_fields__:
+            default = getattr(defaults, field_name)
+            self.declare_parameter(field_name, default)
+            setattr(self, field_name, float(self.get_parameter(field_name).value))
+        # Backwards-compat alias used elsewhere in the file:
+        self.terminal_trig = self.terminal_alt_trigger
 
         # ── QoS profiles ─────────────────────────────────────────────
         qos_hb = QoSProfile(
@@ -195,6 +183,10 @@ class VisionLandingMission(Node):
         # Lock-loss bookkeeping for HOLD state
         self.lock_loss_start = None
         self.lock_loss_alt   = None    # altitude at moment of loss
+
+        # STABILIZE_HIGH dwell bookkeeping (lower bound + fixed dwell)
+        self.stab_high_threshold_seen = False
+        self.stab_high_dwell_start    = None
 
         # ── Timers ────────────────────────────────────────────────────
         self.create_timer(0.1, self._heartbeat_tick)        # 10 Hz heartbeat
@@ -292,6 +284,11 @@ class VisionLandingMission(Node):
 
     def _transition(self, new_state):
         self.get_logger().info(f'STATE: {self.state} → {new_state}')
+        # Reset STABILIZE_HIGH dwell tracking on entry — every entry (from
+        # SEARCH or from HOLD recovery) re-confirms convergence from scratch.
+        if new_state == MissionState.STABILIZE_HIGH:
+            self.stab_high_threshold_seen = False
+            self.stab_high_dwell_start    = None
         self.state = new_state
         self.state_start = self.get_clock().now()
 
@@ -341,10 +338,10 @@ class VisionLandingMission(Node):
         self._transition(MissionState.HOLD)
         self.get_logger().warn(
             f'LOCK LOST in {self.return_state} at alt={self.lock_loss_alt:.2f}m '
-            f'→ HOLD (hover {self.HOLD_HOVER_S:.0f}s, then descend)')
+            f'→ HOLD (hover {self.hold_hover_s:.0f}s, then descend)')
 
     def _tick_hold(self):
-        """While in HOLD: hover for HOLD_HOVER_S, then descend until ground."""
+        """While in HOLD: hover for hold_hover_s, then descend until ground."""
         # Re-lock → resume previous state
         if self.locked and self.return_state is not None:
             self.get_logger().info(f'LOCK RECOVERED → resuming {self.return_state}')
@@ -365,7 +362,7 @@ class VisionLandingMission(Node):
             self._transition(MissionState.DONE)
             return
 
-        if elapsed_lost < self.HOLD_HOVER_S:
+        if elapsed_lost < self.hold_hover_s:
             # Phase 1: hover at altitude where we lost lock
             thrust = self._alt_hold_thrust(self.lock_loss_alt)
             self._send_vel(pitch=0.0, roll=0.0, yaw_vel=0.0, thrust=thrust)
@@ -436,8 +433,8 @@ class VisionLandingMission(Node):
                 err_x = self.target_start_x - (self.drone_state.position[0] if len(self.drone_state.position) >= 1 else 0.0)
                 err_y = self.target_start_y - (self.drone_state.position[1] if len(self.drone_state.position) >= 2 else 0.0)
                 thrust = self._alt_hold_thrust(self.takeoff_alt)
-                self._send_vel(pitch=err_x * self.SEARCH_KP,
-                               roll =err_y * self.SEARCH_KP,
+                self._send_vel(pitch=err_x * self.search_kp,
+                               roll =err_y * self.search_kp,
                                thrust=thrust)
 
             if self.locked:
@@ -455,15 +452,37 @@ class VisionLandingMission(Node):
             thrust = self._alt_hold_thrust(self.takeoff_alt)
             self._track_target(descend_rate=thrust, kp=self.KP_HIGH)
             d_ground = math.hypot(self.pixel_err_x, self.pixel_err_y)
-            if d_ground < self.STABILIZE_HIGH_ERR:
+
+            # Lower bound: arm the dwell timer the first time ground_err drops
+            # below the threshold. The timer never resets once started — even
+            # if ground_err climbs back above threshold, we proceed once
+            # stabilize_high_time has elapsed.
+            if not self.stab_high_threshold_seen and d_ground < self.ground_err_thresh:
+                self.stab_high_threshold_seen = True
+                self.stab_high_dwell_start = self.get_clock().now()
                 self.get_logger().info(
-                    f'Ground err {d_ground:.2f}m < {self.STABILIZE_HIGH_ERR}m '
-                    f'→ DESCEND_TO_LOW')
-                self._transition(MissionState.DESCEND_TO_LOW)
-            elif elapsed >= self.STABILIZE_HIGH_TIMEOUT:
+                    f'Ground err {d_ground:.2f}m < {self.ground_err_thresh:.2f}m '
+                    f'— STABILIZE_HIGH dwell started ({self.stabilize_high_time:.1f}s)')
+
+            # Exit: dwell complete
+            if self.stab_high_threshold_seen:
+                dwell_s = (self.get_clock().now() - self.stab_high_dwell_start).nanoseconds / 1e9
+                if dwell_s >= self.stabilize_high_time:
+                    self.get_logger().info(
+                        f'STABILIZE_HIGH dwell complete ({dwell_s:.2f}s) '
+                        f'→ DESCEND_TO_LOW')
+                    self._transition(MissionState.DESCEND_TO_LOW)
+                    return
+
+            # Safety cap: never exceed stabilize_high_timeout even if the
+            # lower bound is never met (drone drifted, marker partially seen,
+            # etc.). Forces descent so the mission cannot hang indefinitely.
+            if elapsed >= self.stabilize_high_timeout:
                 self.get_logger().warn(
-                    f'STABILIZE_HIGH timeout ({self.STABILIZE_HIGH_TIMEOUT}s, '
-                    f'ground err {d_ground:.2f}m) → forcing descent')
+                    f'STABILIZE_HIGH timeout ({self.stabilize_high_timeout:.1f}s, '
+                    f'ground err {d_ground:.2f}m, '
+                    f'threshold_seen={self.stab_high_threshold_seen}) '
+                    f'→ forcing descent')
                 self._transition(MissionState.DESCEND_TO_LOW)
 
         elif self.state == MissionState.DESCEND_TO_LOW:
@@ -477,7 +496,7 @@ class VisionLandingMission(Node):
         elif self.state == MissionState.STABILIZE_LOW:
             thrust = self._alt_hold_thrust(self.descend_alt)
             self._track_target(descend_rate=thrust, kp=self.KP_LOW)
-            if elapsed >= self.STABILIZE_LOW_TIME:
+            if elapsed >= self.stabilize_low_time:
                 self.get_logger().info('Stable at low alt → TERMINAL_LAND')
                 self.terminal_start = time.monotonic()
                 self._transition(MissionState.TERMINAL_LAND)
@@ -525,7 +544,7 @@ class VisionLandingMission(Node):
 
         if dist < 0.2:
             self.blind_plunge_active = True
-        vz = self.BLIND_PLUNGE_VZ if self.blind_plunge_active else 0.0
+        vz = self.blind_plunge_vz if self.blind_plunge_active else 0.0
 
         yaw_cmd = self.relative_yaw_deg * self.KP_YAW
         self._send_vel(pitch=pitch_cmd, roll=roll_cmd,
@@ -538,14 +557,14 @@ class VisionLandingMission(Node):
     # ══════════════════════════════════════════════════════════════════
     def _execute_slant_landing(self):
         """Sweep gimbal from 45° (0.0) → straight down (-1.0) over
-        SLANT_SWEEP_TIME, then begin vertical descent. Visual servo keeps
+        slant_sweep_time, then begin vertical descent. Visual servo keeps
         the marker centred for the duration."""
         dt_sweep = time.monotonic() - self.terminal_start
-        frac = min(dt_sweep / self.SLANT_SWEEP_TIME, 1.0)
+        frac = min(dt_sweep / self.slant_sweep_time, 1.0)
         target_val = 0.0 - frac * 1.0       # 0.0 (45°) → -1.0 (down)
         self._set_gimbal(target_val)
 
-        vz = self.descend_vz if dt_sweep > (self.SLANT_SWEEP_TIME + 1.0) else 0.0
+        vz = self.descend_vz if dt_sweep > (self.slant_sweep_time + 1.0) else 0.0
         self._track_target(descend_rate=vz, kp=self.KP_LOW)
         # Touchdown trigger handled in _mission_tick
 
