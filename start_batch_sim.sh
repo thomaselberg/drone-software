@@ -18,6 +18,9 @@ BATCH=(
     "GIMBAL DYNAMIC none"
 )
 
+# Number of repeats per combination — total runs = ${#BATCH[@]} × REPEATS
+REPEATS=10
+
 # Timeout per run (seconds) — force-kill if mission doesn't finish
 RUN_TIMEOUT=300
 
@@ -38,13 +41,15 @@ mkdir -p "$RESULTS_DIR"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 SUMMARY_FILE="${RESULTS_DIR}/master_summary_${TIMESTAMP}.csv"
 
-# Write CSV header
-echo "run,mode,scenario,wind,linear_error_m,rotation_error_deg,engagement_s,csv_file" \
+# Write CSV header — `repeat` column added so aggregate_batch.py can group
+echo "run,repeat,mode,scenario,wind,linear_error_m,rotation_error_deg,engagement_s,csv_file" \
     > "$SUMMARY_FILE"
+
+TOTAL_RUNS=$((${#BATCH[@]} * REPEATS))
 
 echo -e "${BLUE}═══════════════════════════════════════════════════════${NC}"
 echo -e "${CYAN}${BOLD}   BATCH COMPARISON RUNNER                            ${NC}"
-echo -e "${CYAN}   ${#BATCH[@]} runs queued                                  ${NC}"
+echo -e "${CYAN}   ${#BATCH[@]} combinations × ${REPEATS} repeats = ${TOTAL_RUNS} runs${NC}"
 echo -e "${CYAN}   Summary → ${GREEN}${SUMMARY_FILE}${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════${NC}"
 
@@ -66,12 +71,10 @@ if [ -f "$QGC_APPIMAGE" ]; then
     fi
 fi
 
-# ── Batch loop ────────────────────────────────────────────────────────
+# ── Batch loop (combinations × repeats) ──────────────────────────────
 RUN_NUM=0
-TOTAL=${#BATCH[@]}
 
 for ENTRY in "${BATCH[@]}"; do
-    RUN_NUM=$((RUN_NUM + 1))
     read -r MODE SCENARIO WIND <<< "$ENTRY"
 
     # ── Scenario-dependent target spawn ──────────────────────────────
@@ -83,9 +86,12 @@ for ENTRY in "${BATCH[@]}"; do
         CAM_SCENARIO="STATIC"
     fi
 
+    for REP in $(seq 1 $REPEATS); do
+    RUN_NUM=$((RUN_NUM + 1))
+
     echo ""
     echo -e "${BLUE}═══════════════════════════════════════════════════════${NC}"
-    echo -e "${CYAN}${BOLD}   RUN ${RUN_NUM}/${TOTAL}: ${MODE} | ${SCENARIO} | ${WIND}${NC}"
+    echo -e "${CYAN}${BOLD}   RUN ${RUN_NUM}/${TOTAL_RUNS}: ${MODE} | ${SCENARIO} | ${WIND}  (repeat ${REP}/${REPEATS})${NC}"
     echo -e "${CYAN}   Target Spawn: ${TARGET_DIST}m${NC}"
     echo -e "${BLUE}═══════════════════════════════════════════════════════${NC}"
 
@@ -159,7 +165,7 @@ for ENTRY in "${BATCH[@]}"; do
     done
 
     if [ $WAIT_COUNT -ge 120 ]; then
-        echo "${RUN_NUM},${MODE},${SCENARIO},${WIND},STARTUP_FAIL,STARTUP_FAIL,STARTUP_FAIL,N/A" \
+        echo "${RUN_NUM},${REP},${MODE},${SCENARIO},${WIND},STARTUP_FAIL,STARTUP_FAIL,STARTUP_FAIL,N/A" \
             >> "$SUMMARY_FILE"
         continue
     fi
@@ -233,17 +239,18 @@ for ENTRY in "${BATCH[@]}"; do
         LINEAR_ERR=$(echo "$DATA_LINE" | cut -d',' -f5)
         ROT_ERR=$(echo "$DATA_LINE" | cut -d',' -f6)
         ENGAGE=$(echo "$DATA_LINE" | cut -d',' -f7)
-        echo "${RUN_NUM},${MODE},${SCENARIO},${WIND},${LINEAR_ERR},${ROT_ERR},${ENGAGE},$(basename "$NEW_CSV")" \
+        echo "${RUN_NUM},${REP},${MODE},${SCENARIO},${WIND},${LINEAR_ERR},${ROT_ERR},${ENGAGE},$(basename "$NEW_CSV")" \
             >> "$SUMMARY_FILE"
         echo -e "${GREEN}  Linear Error  : ${LINEAR_ERR} m${NC}"
         echo -e "${GREEN}  Rotation Error: ${ROT_ERR}°${NC}"
         echo -e "${GREEN}  Engagement    : ${ENGAGE} s${NC}"
     else
-        echo "${RUN_NUM},${MODE},${SCENARIO},${WIND},TIMEOUT,TIMEOUT,TIMEOUT,N/A" \
+        echo "${RUN_NUM},${REP},${MODE},${SCENARIO},${WIND},TIMEOUT,TIMEOUT,TIMEOUT,N/A" \
             >> "$SUMMARY_FILE"
         echo -e "${RED}  No CSV produced — logged as TIMEOUT${NC}"
     fi
-done
+    done   # end REP loop
+done       # end BATCH loop
 
 # ── Final cleanup ─────────────────────────────────────────────────────
 echo -e "${YELLOW}>>> Final cleanup...${NC}"
@@ -265,9 +272,18 @@ pkill -9 -f px4           2>/dev/null
 # ── Final summary ────────────────────────────────────────────────────
 echo ""
 echo -e "${BLUE}═══════════════════════════════════════════════════════${NC}"
-echo -e "${CYAN}${BOLD}   BATCH COMPLETE — ${TOTAL} runs finished${NC}"
-echo -e "${CYAN}   Summary → ${GREEN}${SUMMARY_FILE}${NC}"
+echo -e "${CYAN}${BOLD}   BATCH COMPLETE — ${RUN_NUM}/${TOTAL_RUNS} runs finished${NC}"
+echo -e "${CYAN}   Summary  → ${GREEN}${SUMMARY_FILE}${NC}"
+
+# ── Aggregate per-combination statistics ─────────────────────────────
+AGGREGATE_FILE="${RESULTS_DIR}/aggregate_batch_${TIMESTAMP}.csv"
+echo -e "${BLUE}>>> Aggregating per-combination statistics...${NC}"
+if ros2 run thyra aggregate_batch.py "$SUMMARY_FILE" "$AGGREGATE_FILE" 2>&1; then
+    echo -e "${CYAN}   Aggregate → ${GREEN}${AGGREGATE_FILE}${NC}"
+else
+    echo -e "${RED}>>> Aggregation failed — master summary is still available${NC}"
+fi
 echo -e "${BLUE}═══════════════════════════════════════════════════════${NC}"
 echo ""
-echo -e "${YELLOW}Results:${NC}"
+echo -e "${YELLOW}Raw rows:${NC}"
 column -t -s',' "$SUMMARY_FILE"

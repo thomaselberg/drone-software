@@ -106,6 +106,7 @@ install(PROGRAMS
   script/bench_dry_test.py
   script/kpi_logger_sim.py
   script/kpi_logger_real.py
+  script/aggregate_batch.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
