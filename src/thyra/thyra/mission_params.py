@@ -35,6 +35,7 @@ class MissionParams:
     stabilize_low_time:     float = 1.0   # dwell at descend_alt before TERMINAL_LAND
     slant_sweep_time:       float = 5.0   # gimbal 0 → -1 sweep duration
     hold_hover_s:           float = 5.0   # HOLD phase-1 (hover) duration before descending
+    coast_decay_time:       float = 2.0   # Time to decay velocity to zero after lock loss
 
     # ── Thresholds ──────────────────────────────────────────────────
     ground_err_thresh: float = 0.5   # SEARCH lock gate AND STABILIZE_HIGH lower bound
@@ -42,5 +43,5 @@ class MissionParams:
     blind_plunge_vz:   float = 0.5   # STATIC mode dead-reckon plunge speed
 
     # ── Default known marker position (STATIC scenario) ─────────────
-    target_start_x: float = 1.0   # metres North in NED
+    target_start_x: float = 10.0  # metres North in NED (STATIC target is always at 10m N)
     target_start_y: float = 0.0   # metres East  in NED

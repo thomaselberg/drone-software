@@ -185,6 +185,8 @@ class VisionLandingMission(Node):
         # Lock-loss bookkeeping for HOLD state
         self.lock_loss_start = None
         self.lock_loss_alt   = None    # altitude at moment of loss
+        self.coast_pitch     = 0.0
+        self.coast_roll      = 0.0
 
         # STABILIZE_HIGH dwell bookkeeping (lower bound + fixed dwell)
         self.stab_high_threshold_seen = False
@@ -339,6 +341,10 @@ class VisionLandingMission(Node):
         self.return_state = self.state
         self.lock_loss_start = self.get_clock().now()
         self.lock_loss_alt = -self.local_pos.z
+        
+        self.coast_pitch = self.last_cmd_pitch
+        self.coast_roll = self.last_cmd_roll
+        
         self._transition(MissionState.HOLD)
         self.get_logger().warn(
             f'LOCK LOST in {self.return_state} at alt={self.lock_loss_alt:.2f}m '
@@ -367,9 +373,12 @@ class VisionLandingMission(Node):
             return
 
         if elapsed_lost < self.hold_hover_s:
-            # Phase 1: hover at altitude where we lost lock
+            # Phase 1: Coast and hover
+            factor = max(0.0, 1.0 - (elapsed_lost / self.coast_decay_time))
+            pitch = self.coast_pitch * factor
+            roll = self.coast_roll * factor
             thrust = self._alt_hold_thrust(self.lock_loss_alt)
-            self._send_vel(pitch=0.0, roll=0.0, yaw_vel=0.0, thrust=thrust)
+            self._send_vel(pitch=pitch, roll=roll, yaw_vel=0.0, thrust=thrust)
         else:
             # Phase 2: controlled descent at descend_vz
             self._send_vel(pitch=0.0, roll=0.0, yaw_vel=0.0,
