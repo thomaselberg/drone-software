@@ -1,11 +1,20 @@
 ### PHASE 1: SINGULAR SIMULATIONS
-# Launch the interactive simulation base for tuning
+
+# Terminal A: Launch the interactive simulation base
 ./start_sim_base.sh
 
+# Terminal B: Run the actual mission logic
+# (Wait for Terminal A to show "Autopilot Ready!")
+ros2 run thyra vision_landing_mission.py --ros-args \
+  -p mode:=GIMBAL -p scenario:=DYNAMIC \
+  -p wind_scenario:=none -p takeoff_alt:=1.5
+
 ### PHASE 2: BATCH EXECUTION
+
 # Run the long-running batch scenarios
 ./start_batch_sim.sh
 
 ### PHASE 4: RESULTS INTEGRATION
+
 # Aggregate data and statistics once the batch is finished
 python3 src/thyra/script/aggregate_batch.py
