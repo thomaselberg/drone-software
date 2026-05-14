@@ -1,0 +1,11 @@
+### PHASE 1: SINGULAR SIMULATIONS
+# Launch the interactive simulation base for tuning
+./start_sim_base.sh
+
+### PHASE 2: BATCH EXECUTION
+# Run the long-running batch scenarios
+./start_batch_sim.sh
+
+### PHASE 4: RESULTS INTEGRATION
+# Aggregate data and statistics once the batch is finished
+python3 src/thyra/script/aggregate_batch.py
