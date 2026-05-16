@@ -5,9 +5,9 @@ vision_landing_mission.py
 Unified vision-based landing mission. One algorithm for sim and real flight.
 
 The shell launcher decides the environment:
-  - start_comparison_sim.sh  (single sim run, with synthetic cam + wind + KPI logger)
+  - start_sim.sh             (single sim run, with synthetic cam + KPI logger)
   - start_batch_sim.sh       (multi-run sim sweep)
-  - start_real_flight.sh     (real drone, RealSense, no wind, no synthetic cam)
+  - start_real_flight.sh     (real drone, RealSense, no synthetic cam)
 
 This script is environment-agnostic. It never touches the camera source,
 never starts Gazebo, never writes CSVs. KPI logging is handled by separate
@@ -92,11 +92,9 @@ class VisionLandingMission(Node):
         # ── Runtime config (mission identity, not tuning) ─────────────
         self.declare_parameter('mode', 'GIMBAL')
         self.declare_parameter('scenario', 'DYNAMIC')
-        self.declare_parameter('wind_scenario', 'none')
 
-        self.mode          = self.get_parameter('mode').value.upper()
-        self.scenario      = self.get_parameter('scenario').value.upper()
-        self.wind_scenario = self.get_parameter('wind_scenario').value
+        self.mode     = self.get_parameter('mode').value.upper()
+        self.scenario = self.get_parameter('scenario').value.upper()
 
         # ── Tuning params (all MissionParams fields are ROS-overridable) ─
         defaults = MissionParams()
@@ -140,7 +138,7 @@ class VisionLandingMission(Node):
             VehicleLocalPosition, '/fmu/out/vehicle_local_position',
             self._lpos_cb, qos_sensor)
         self.create_subscription(
-            Vector3Stamped, '/asr/comparison/aruco_pixel_error',
+            Vector3Stamped, '/asr/aruco/pixel_error',
             self._pixel_cb, 10)
         # Truth subscriber is sim-only; the synthetic cam publishes it.
         # Used by STATIC mode's blind landing. On real flight nothing
@@ -191,6 +189,7 @@ class VisionLandingMission(Node):
         self.lock_loss_alt   = None    # altitude at moment of loss
         self.coast_pitch     = 0.0
         self.coast_roll      = 0.0
+        self.coast_yaw_vel   = 0.0
 
         # STABILIZE_HIGH dwell bookkeeping (lower bound + fixed dwell)
         self.stab_high_threshold_seen = False
@@ -200,9 +199,10 @@ class VisionLandingMission(Node):
         self.prev_d_ground = None
 
         # TERMINAL_LAND coast-on-loss bookkeeping
-        self.terminal_loss_start  = None
-        self.terminal_coast_pitch = 0.0
-        self.terminal_coast_roll  = 0.0
+        self.terminal_loss_start    = None
+        self.terminal_coast_pitch   = 0.0
+        self.terminal_coast_roll    = 0.0
+        self.terminal_coast_yaw_vel = 0.0
 
         # ── Timers ────────────────────────────────────────────────────
         self.create_timer(0.1, self._heartbeat_tick)        # 10 Hz heartbeat
@@ -349,6 +349,17 @@ class VisionLandingMission(Node):
         err_fwd  =  self.pixel_err_x * cy + self.pixel_err_y * sy
         err_side = -self.pixel_err_x * sy + self.pixel_err_y * cy
 
+        # Compensate for the camera being mounted cam_offset_x forward of the
+        # drone center. We want the *drone* — not the camera — to end up over
+        # the target, so the camera's aim point is biased ahead of the target
+        # in the marker's forward direction (relative_yaw_deg is the marker
+        # heading in body frame). When yaw is aligned this is purely +X body;
+        # during turns the bias rotates with the marker so the goal point
+        # stays consistent.
+        rel_yaw_rad = math.radians(self.relative_yaw_deg)
+        err_fwd  += self.cam_offset_x * math.cos(rel_yaw_rad)
+        err_side += self.cam_offset_x * math.sin(rel_yaw_rad)
+
         cmd_pitch = max(-1.0, min(1.0, kp * err_fwd))
         cmd_roll  = max(-1.0, min(1.0, kp * err_side))
 
@@ -367,8 +378,9 @@ class VisionLandingMission(Node):
         self.lock_loss_start = self.get_clock().now()
         self.lock_loss_alt = -self.local_pos.z
         
-        self.coast_pitch = self.last_cmd_pitch
-        self.coast_roll = self.last_cmd_roll
+        self.coast_pitch   = self.last_cmd_pitch
+        self.coast_roll    = self.last_cmd_roll
+        self.coast_yaw_vel = self.last_cmd_yaw_vel
         
         self._transition(MissionState.HOLD)
         self.get_logger().warn(
@@ -400,10 +412,11 @@ class VisionLandingMission(Node):
         if elapsed_lost < self.hold_hover_s:
             # Phase 1: Coast and hover
             factor = max(0.0, 1.0 - (elapsed_lost / self.coast_decay_time))
-            pitch = self.coast_pitch * factor
-            roll = self.coast_roll * factor
-            thrust = self._alt_hold_thrust(self.lock_loss_alt)
-            self._send_vel(pitch=pitch, roll=roll, yaw_vel=0.0, thrust=thrust)
+            pitch   = self.coast_pitch   * factor
+            roll    = self.coast_roll    * factor
+            yaw_vel = self.coast_yaw_vel * factor
+            thrust  = self._alt_hold_thrust(self.lock_loss_alt)
+            self._send_vel(pitch=pitch, roll=roll, yaw_vel=yaw_vel, thrust=thrust)
         else:
             # Phase 2: controlled descent at descend_vz
             self._send_vel(pitch=0.0, roll=0.0, yaw_vel=0.0,
@@ -424,18 +437,20 @@ class VisionLandingMission(Node):
             return
 
         if self.terminal_loss_start is None:
-            self.terminal_loss_start  = self.get_clock().now()
-            self.terminal_coast_pitch = self.last_cmd_pitch
-            self.terminal_coast_roll  = self.last_cmd_roll
+            self.terminal_loss_start    = self.get_clock().now()
+            self.terminal_coast_pitch   = self.last_cmd_pitch
+            self.terminal_coast_roll    = self.last_cmd_roll
+            self.terminal_coast_yaw_vel = self.last_cmd_yaw_vel
             self.get_logger().warn(
                 f'TERMINAL_LAND lock lost at alt={alt:.2f}m '
                 f'— coasting descent at {self.descend_vz:.2f}m/s')
 
         elapsed_lost = (self.get_clock().now() - self.terminal_loss_start).nanoseconds / 1e9
         factor = max(0.0, 1.0 - (elapsed_lost / self.coast_decay_time))
-        pitch = self.terminal_coast_pitch * factor
-        roll  = self.terminal_coast_roll  * factor
-        self._send_vel(pitch=pitch, roll=roll, yaw_vel=0.0,
+        pitch   = self.terminal_coast_pitch   * factor
+        roll    = self.terminal_coast_roll    * factor
+        yaw_vel = self.terminal_coast_yaw_vel * factor
+        self._send_vel(pitch=pitch, roll=roll, yaw_vel=yaw_vel,
                        thrust=self.descend_vz)
 
     # ══════════════════════════════════════════════════════════════════
@@ -498,8 +513,9 @@ class VisionLandingMission(Node):
                 self._transition(MissionState.SEARCH)
 
         elif self.state == MissionState.SEARCH:
-            if self.scenario == 'DYNAMIC':
-                # Hold position, wait for the moving target to enter FoV
+            if self.scenario != 'STATIC':
+                # DYNAMIC / DYNAMIC_EASY: hold position, wait for the
+                # moving target to enter FoV.
                 thrust = self._alt_hold_thrust(self.takeoff_alt)
                 self._send_vel(pitch=0.0, roll=0.0, thrust=thrust)
             else:
@@ -514,7 +530,7 @@ class VisionLandingMission(Node):
             if self.locked:
                 d_ground = math.hypot(self.pixel_err_x, self.pixel_err_y)
                 if d_ground < self.ground_err_thresh:
-                    if self.scenario == 'DYNAMIC':
+                    if self.scenario != 'STATIC':
                         # Engaging the controller while an inbound target is
                         # still closing in causes a violent backwards brake.
                         # Wait until d_ground is no longer shrinking (target
@@ -673,7 +689,6 @@ class VisionLandingMission(Node):
             'state':            self.state,
             'mode':             self.mode,
             'scenario':         self.scenario,
-            'wind_scenario':    self.wind_scenario,
             'locked':           bool(self.locked),
             'altitude_m':       float(-self.local_pos.z),
             'pixel_err_x':      float(self.pixel_err_x),

@@ -59,16 +59,16 @@ ament_target_dependencies(thyra_lib
   geometry_msgs
 )
 
-add_executable(aruco_detector_comparison
-  src/aruco_detector_comparison.cpp
+add_executable(aruco_detector
+  src/aruco_detector.cpp
 )
-target_link_libraries(aruco_detector_comparison
+target_link_libraries(aruco_detector
   ${OpenCV_LIBRARIES}
 )
-target_include_directories(aruco_detector_comparison PUBLIC
+target_include_directories(aruco_detector PUBLIC
   ${OpenCV_INCLUDE_DIRS}
 )
-ament_target_dependencies(aruco_detector_comparison
+ament_target_dependencies(aruco_detector
   rclcpp
   sensor_msgs
   geometry_msgs
@@ -97,11 +97,9 @@ install(PROGRAMS
   script/gimbal.py
   script/mission_zero.py
   script/synthetic_camera_sim.py
-  script/synthetic_cam_comparison.py
-  script/aruco_detector_comparison.py
-  script/mission_comparison.py
+  script/synthetic_cam.py
+  script/aruco_detector.py
   script/real_flight_test.py
-  script/wind_gust_generator.py
   script/vision_landing_mission.py
   script/bench_dry_test.py
   script/kpi_logger_sim.py
@@ -123,7 +121,7 @@ ament_target_dependencies(thyra_mission_executor
 install(TARGETS
   thyra_lib
   thyra_mission_executor
-  aruco_detector_comparison
+  aruco_detector
   DESTINATION lib/${PROJECT_NAME}
 )
 

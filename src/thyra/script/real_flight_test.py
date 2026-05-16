@@ -107,7 +107,7 @@ class RealFlightTest(Node):
             VehicleLocalPosition, '/fmu/out/vehicle_local_position',
             self._lpos_cb, qos_sensor)
         self.create_subscription(
-            Vector3Stamped, '/asr/comparison/aruco_pixel_error',
+            Vector3Stamped, '/asr/aruco/pixel_error',
             self._pixel_cb, 10)
 
         # Action Client

@@ -1,0 +1,156 @@
+#!/bin/bash
+# ═══════════════════════════════════════════════════════════════════════
+# start_sim.sh
+# ═══════════════════════════════════════════════════════════════════════
+# Single-run sim launcher: Gazebo + PX4 SITL + autopilot + synthetic
+# camera + ArUco detector + KPI logger + mission. All teardown is
+# handled here.
+#
+# Usage:
+#   ./start_sim.sh                          # defaults: GIMBAL, DYNAMIC
+#   ./start_sim.sh STATIC STATIC
+#   ./start_sim.sh GIMBAL DYNAMIC_EASY      # 10x slower target, 1m N
+# ═══════════════════════════════════════════════════════════════════════
+
+# ── Arguments ─────────────────────────────────────────────────────────
+MODE_RAW="${1:-GIMBAL}"
+MODE=$(echo "$MODE_RAW" | tr '[:lower:]' '[:upper:]')
+SCENARIO_RAW="${2:-DYNAMIC}" # STATIC, DYNAMIC, or DYNAMIC_EASY
+SCENARIO=$(echo "$SCENARIO_RAW" | tr '[:lower:]' '[:upper:]')
+
+# ── Scenario-dependent target spawn + camera scenario ────────────────
+case "$SCENARIO" in
+    DYNAMIC)
+        TARGET_DIST="-1.0"    # 1m South — target drifts N past the drone
+        CAM_SCENARIO="MOVING"
+        ;;
+    DYNAMIC_EASY)
+        TARGET_DIST="1.0"     # 1m North — target is slow, so spawn closer/ahead
+        CAM_SCENARIO="MOVING_EASY"
+        ;;
+    *)
+        TARGET_DIST="10.0"    # STATIC: 10m North
+        CAM_SCENARIO="STATIC"
+        ;;
+esac
+
+# ── Colors ────────────────────────────────────────────────────────────
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+# ── Display ───────────────────────────────────────────────────────────
+export DISPLAY=${DISPLAY:-:1}
+
+echo -e "${BLUE}═══════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}   FAIR COMPARISON SIMULATION                     ${NC}"
+echo -e "${CYAN}   Mode: ${GREEN}${MODE}${CYAN}   Scenario: ${GREEN}${SCENARIO}${NC}"
+echo -e "${CYAN}   Target Spawn: ${GREEN}${TARGET_DIST}m${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════${NC}"
+
+# ── 1. Cleanup ────────────────────────────────────────────────────────
+echo -e "${YELLOW}>>> Cleaning up previous sessions...${NC}"
+pkill -9 -f MicroXRCEAgent   2>/dev/null
+pkill -9 -f px4              2>/dev/null
+pkill -9 -f "gz sim"         2>/dev/null
+pkill -9 -f "ruby"           2>/dev/null
+pkill -9 -f "thyra"          2>/dev/null
+pkill -9 -f "mission"        2>/dev/null
+pkill -9 -f "synthetic"      2>/dev/null
+pkill -9 -f "aruco_detector" 2>/dev/null
+pkill -9 -f "python3"        2>/dev/null
+sleep 2
+
+rm -f /tmp/sim_output.log
+
+# ── 2. Source environment ─────────────────────────────────────────────
+source /opt/ros/jazzy/setup.bash
+cd ~/drone-software
+source install/setup.bash
+
+# ── 3. QGroundControl (optional) ──────────────────────────────────────
+# Skip if --no-qgc flag is passed (used by batch runner)
+SKIP_QGC=false
+for arg in "$@"; do
+    if [ "$arg" == "--no-qgc" ]; then
+        SKIP_QGC=true
+    fi
+done
+
+QGC_APPIMAGE="$HOME/QGroundControl-x86_64.AppImage"
+if [ "$SKIP_QGC" == "false" ] && [ -f "$QGC_APPIMAGE" ]; then
+    if ! pgrep -f "QGroundControl" > /dev/null 2>&1; then
+        echo -e "${BLUE}>>> Launching QGroundControl...${NC}"
+        chmod +x "$QGC_APPIMAGE"
+        "$QGC_APPIMAGE" > /dev/null 2>&1 &
+    else
+        echo -e "${YELLOW}>>> QGroundControl already running — skipping${NC}"
+    fi
+elif [ "$SKIP_QGC" == "true" ]; then
+    echo -e "${YELLOW}>>> QGroundControl skipped (--no-qgc)${NC}"
+fi
+
+# ── 4. Launch base simulation (team launch) ──────────────────────────
+echo -e "${BLUE}>>> [1/4] Launching official team simulation...${NC}"
+ros2 launch thyra thyra_sim.launch.py 2>&1 | tee /tmp/sim_output.log &
+SIM_PID=$!
+
+# ── 5. Launch Synthetic Camera + Target Engine ────────────────────────
+echo -e "${BLUE}>>> [2/4] Launching synthetic camera...${NC}"
+ros2 run thyra synthetic_cam.py --ros-args \
+    -p target_start_x:="${TARGET_DIST}" \
+    -p target_start_y:=0.0 \
+    -p scenario:="${CAM_SCENARIO}" \
+    -p marker_size_m:=0.6 \
+    -p whiteout_interval_s:=10.0 \
+    -p whiteout_duration_s:=0.2 \
+    -p camera_pitch_deg:=45.0 &
+CAM_PID=$!
+
+# ── 6. Launch ArUco Detector (C++) ───────────────────────────────────
+echo -e "${BLUE}>>> [3/4] Launching ArUco detector (C++)...${NC}"
+ros2 run thyra aruco_detector --ros-args -p show_window:=true &
+DET_PID=$!
+
+# ── 7. Wait for autopilot readiness ──────────────────────────────────
+echo -e "${YELLOW}>>> Waiting for THYRA OPERATIONAL...${NC}"
+while true; do
+    if grep -q "THYRA OPERATIONAL" /tmp/sim_output.log 2>/dev/null; then
+        echo -e "${GREEN}>>> Autopilot Ready!${NC}"
+        break
+    fi
+    sleep 1
+done
+
+# ── 8. Launch KPI Logger (sim) ───────────────────────────────────────
+echo -e "${BLUE}>>> [4a/4] Launching KPI logger (sim)...${NC}"
+ros2 run thyra kpi_logger_sim.py --ros-args \
+    -p mode:="${MODE}" \
+    -p scenario:="${SCENARIO}" &
+KPI_PID=$!
+
+# ── 9. Launch Mission Controller ─────────────────────────────────────
+echo -e "${GREEN}>>> [4b/4] Launching vision_landing_mission (${MODE}, ${SCENARIO})...${NC}"
+ros2 run thyra vision_landing_mission.py --ros-args \
+    -p mode:="${MODE}" \
+    -p scenario:="${SCENARIO}" \
+    -p takeoff_alt:=3.0 \
+    -p target_start_x:="${TARGET_DIST}" \
+    -p target_start_y:=0.0 &
+MISSION_PID=$!
+
+# ── Shutdown handler ──────────────────────────────────────────────────
+echo ""
+echo -e "${GREEN}╔═══════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║  All nodes launched. Press Ctrl+C to stop.   ║${NC}"
+echo -e "${GREEN}║  Results → ~/drone-software/results/          ║${NC}"
+echo -e "${GREEN}╚═══════════════════════════════════════════════╝${NC}"
+
+trap "echo -e '${RED}Shutting down all nodes...${NC}'; \
+      kill $SIM_PID $CAM_PID $DET_PID $KPI_PID $MISSION_PID 2>/dev/null; \
+      exit" INT TERM
+
+wait

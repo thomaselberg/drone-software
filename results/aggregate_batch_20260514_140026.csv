@@ -1,0 +1,5 @@
+mode,scenario,wind,total_runs,linear_error_m_n,linear_error_m_mean,linear_error_m_std,linear_error_m_min,linear_error_m_max,rotation_error_deg_n,rotation_error_deg_mean,rotation_error_deg_std,rotation_error_deg_min,rotation_error_deg_max,engagement_s_n,engagement_s_mean,engagement_s_std,engagement_s_min,engagement_s_max
+GIMBAL,DYNAMIC,none,1,1,0.0352,0.0000,0.0352,0.0352,1,27.6400,0.0000,27.6400,27.6400,1,16.4900,0.0000,16.4900,16.4900
+GIMBAL,STATIC,none,1,1,0.0236,0.0000,0.0236,0.0236,1,0.0300,0.0000,0.0300,0.0300,1,17.8200,0.0000,17.8200,17.8200
+STATIC,DYNAMIC,none,1,1,0.2172,0.0000,0.2172,0.2172,1,16.7300,0.0000,16.7300,16.7300,1,28.3800,0.0000,28.3800,28.3800
+STATIC,STATIC,none,1,1,1.1414,0.0000,1.1414,1.1414,1,0.1000,0.0000,0.1000,0.1000,1,9.6200,0.0000,9.6200,9.6200

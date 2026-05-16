@@ -45,12 +45,12 @@ The gimbal will not need this as it will use the slant_logic.md -thus never need
         - **No Reversing:** $V_f \ge 0$.
     - **Heading:** The ArUco marker's forward orientation is always perfectly aligned with its current velocity vector.
     - **Start position** of the target must be easily configurable
-    - **wind** Stochastic Gust Generator: A standalone Python script that injects randomized 5-10m/s wind vectors into the Gazebo world via real-time service requests. Should be perfectly reproducible for fair comparison. I propose 3 different gust scenarios that always make the same profile when running. The gust scenario should be selected and run within start_sim.sh
+    - **wind** Not currently simulated. PX4-SITL with `gz-sim` doesn't expose the multirotor airframe to Gazebo's wind plugin out of the box (no `<enable_wind>` on the drone, no `WindEffects` system in the server config), so a wind generator can't disturb flight without modifying PX4's server.config + adding a drag plugin. The previous `wind_gust_generator.py` published a `Vector3` topic that nothing subscribed to and was removed.
     - **Simulated significant change in illumination** the camera will probably get blasted with light from reflections at some point - so at some intervals (every 10 sec) the cam should briefly (max 0.2s) be completely white. This should also be reproducible. I propose this be added to the synthetic camera script and easily configurable. 
 
 ## 5. Key Performance Indicators (KPIs)
 The following metrics must be recorded at the point of **Touchdown** into a new CSV file for every run.
-- **Filename Format:** `[mode]_[wind_scenario]_[HHMM].csv` (e.g., `static_gust2_1445.csv`)
+- **Filename Format:** `[mode]_[scenario]_[HHMMSS].csv` (e.g., `gimbal_dynamic_144505.csv`)
 
 1. **Linear Distance Error:** Euclidean distance (m) between the drone's center and the target center.
 2. **Rotation Error:** The angular difference (degrees/radians) between the drone's forward direction and the target's forward direction.

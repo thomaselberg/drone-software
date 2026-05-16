@@ -6,20 +6,19 @@ Sim-only KPI logger for vision_landing_mission.py.
 
 Subscribes to:
   /asr/mission/state            (JSON String published by the mission)
-  /asr/sim/true_target_state    (TwistStamped — synthetic_cam_comparison truth)
+  /asr/sim/true_target_state    (TwistStamped — synthetic_cam truth)
 
-Writes CSV with the same format and filename pattern that the old
-mission_comparison.py wrote, so existing analysis tooling and the
-batch runner's filesystem-snapshot detection keep working unchanged:
+Writes CSV per run:
 
-  Filename: {mode_tag}_{scenario_tag}_{wind_scenario}_{HHMMSS}.csv
+  Filename: {mode_tag}_{scenario_tag}_{HHMMSS}.csv
   Where:    mode_tag     = 'static' | 'gimbal'
-            scenario_tag = 'static' | 'dynamic'
+            scenario_tag = 'static' | 'dynamic' | 'dynamic_easy'
 
-  Columns:  time_ms, mode, scenario, wind_scenario,
+  Columns:  time_ms, mode, scenario,
             linear_error_m, rotation_error_deg, engagement_duration_s,
             drone_x, drone_y, target_x, target_y,
-            altitude_m, state
+            altitude_m, state,
+            last_cmd_pitch, last_cmd_roll, last_cmd_yaw_vel, last_cmd_thrust
 
 Recording starts at first lock (mission state shows first_lock_ns > 0),
 samples every 100 ms, and stops when state == DONE.
@@ -52,14 +51,12 @@ class KpiLoggerSim(Node):
         # arrives before we get to record (it always does in practice).
         self.declare_parameter('mode', 'GIMBAL')
         self.declare_parameter('scenario', 'DYNAMIC')
-        self.declare_parameter('wind_scenario', 'none')
         self.declare_parameter('output_dir', os.path.expanduser('~/drone-software/results'))
 
-        self.mode_tag      = ('static' if self.get_parameter('mode').value.upper() == 'STATIC'
-                              else 'gimbal')
-        self.scenario_tag  = self.get_parameter('scenario').value.lower()
-        self.wind_scenario = self.get_parameter('wind_scenario').value
-        self.output_dir    = self.get_parameter('output_dir').value
+        self.mode_tag     = ('static' if self.get_parameter('mode').value.upper() == 'STATIC'
+                             else 'gimbal')
+        self.scenario_tag = self.get_parameter('scenario').value.lower()
+        self.output_dir   = self.get_parameter('output_dir').value
         os.makedirs(self.output_dir, exist_ok=True)
 
         # State
@@ -85,7 +82,7 @@ class KpiLoggerSim(Node):
         self.get_logger().info(
             f'KPI logger (sim) started  '
             f'mode={self.mode_tag}  scenario={self.scenario_tag}  '
-            f'wind={self.wind_scenario}  out={self.output_dir}')
+            f'out={self.output_dir}')
 
     # ── Callbacks ─────────────────────────────────────────────────────
     def _state_cb(self, msg: String):
@@ -96,10 +93,9 @@ class KpiLoggerSim(Node):
         self.latest_state = payload
 
         # Refresh tags from the mission so we never disagree with it
-        self.mode_tag      = ('static' if payload.get('mode', '').upper() == 'STATIC'
-                              else 'gimbal')
-        self.scenario_tag  = payload.get('scenario', '').lower() or self.scenario_tag
-        self.wind_scenario = payload.get('wind_scenario', self.wind_scenario)
+        self.mode_tag     = ('static' if payload.get('mode', '').upper() == 'STATIC'
+                             else 'gimbal')
+        self.scenario_tag = payload.get('scenario', '').lower() or self.scenario_tag
 
         flock = int(payload.get('first_lock_ns', 0) or 0)
         if flock > 0 and self.first_lock_ns == 0:
@@ -189,13 +185,13 @@ class KpiLoggerSim(Node):
 
         try:
             now_str = datetime.now().strftime('%H%M%S')
-            filename = f'{self.mode_tag}_{self.scenario_tag}_{self.wind_scenario}_{now_str}.csv'
+            filename = f'{self.mode_tag}_{self.scenario_tag}_{now_str}.csv'
             filepath = os.path.join(self.output_dir, filename)
 
             with open(filepath, 'w', newline='') as f:
                 writer = csv.writer(f)
                 writer.writerow([
-                    'time_ms', 'mode', 'scenario', 'wind_scenario',
+                    'time_ms', 'mode', 'scenario',
                     'linear_error_m', 'rotation_error_deg',
                     'engagement_duration_s',
                     'drone_x', 'drone_y', 'target_x', 'target_y',
@@ -205,7 +201,6 @@ class KpiLoggerSim(Node):
                 for row in self.rows:
                     writer.writerow([
                         row['time_ms'], self.mode_tag, self.scenario_tag,
-                        self.wind_scenario,
                         row['linear_error_m'], row['rotation_error_deg'],
                         row['engagement_duration_s'],
                         row['drone_x'], row['drone_y'],

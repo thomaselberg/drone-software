@@ -3,7 +3,7 @@
 aggregate_batch.py
 ------------------
 Reads a master_summary_*.csv produced by start_batch_sim.sh and writes
-per-combination (mode × scenario × wind) statistics to aggregate_batch_*.csv.
+per-combination (mode × scenario) statistics to aggregate_batch_*.csv.
 
 Usage:
   ros2 run thyra aggregate_batch.py <input.csv> [<output.csv>]
@@ -31,7 +31,7 @@ import sys
 
 
 METRIC_COLS = ('linear_error_m', 'rotation_error_deg', 'engagement_s')
-KEY_COLS    = ('mode', 'scenario', 'wind')
+KEY_COLS    = ('mode', 'scenario')
 SENTINELS   = ('STARTUP_FAIL', 'TIMEOUT', 'N/A', '')
 
 
@@ -71,7 +71,7 @@ def aggregate(input_path, output_path):
         print(f'error: input not found: {input_path}', file=sys.stderr)
         return 1
 
-    # ── Read rows, group by (mode, scenario, wind) ──────────────────
+    # ── Read rows, group by (mode, scenario) ────────────────────────
     groups = {}      # key → list of dicts with float metrics (or None)
     raw_count = 0
     with open(input_path, newline='') as f:
@@ -89,9 +89,9 @@ def aggregate(input_path, output_path):
     # ── Compute statistics ──────────────────────────────────────────
     rows_out = []
     for key, runs in sorted(groups.items()):
-        mode, scenario, wind = key
+        mode, scenario = key
         total_runs = len(runs)
-        record = {'mode': mode, 'scenario': scenario, 'wind': wind,
+        record = {'mode': mode, 'scenario': scenario,
                   'total_runs': total_runs}
         for m in METRIC_COLS:
             n, mean, std, mn, mx = _stats([r[m] for r in runs])
@@ -103,7 +103,7 @@ def aggregate(input_path, output_path):
         rows_out.append(record)
 
     # ── Write aggregate CSV ─────────────────────────────────────────
-    fieldnames = ['mode', 'scenario', 'wind', 'total_runs']
+    fieldnames = ['mode', 'scenario', 'total_runs']
     for m in METRIC_COLS:
         for suffix in ('n', 'mean', 'std', 'min', 'max'):
             fieldnames.append(f'{m}_{suffix}')
@@ -113,7 +113,7 @@ def aggregate(input_path, output_path):
         writer.writerow(fieldnames)
         for r in rows_out:
             writer.writerow([
-                r['mode'], r['scenario'], r['wind'], r['total_runs'],
+                r['mode'], r['scenario'], r['total_runs'],
                 *(
                     r[f'{m}_n'] if suffix == 'n' else _fmt(r[f'{m}_{suffix}'])
                     for m in METRIC_COLS
@@ -126,7 +126,7 @@ def aggregate(input_path, output_path):
     print(f'Input : {input_path}')
     print(f'Output: {output_path}\n')
 
-    header = f'{"mode":<8}{"scenario":<10}{"wind":<8}{"n":>4}   '
+    header = f'{"mode":<8}{"scenario":<14}{"n":>4}   '
     header += f'{"lin_err mean ± std":<22}{"rot_err mean ± std":<22}{"engage mean ± std":<22}'
     print(header)
     print('-' * len(header))
@@ -140,7 +140,7 @@ def aggregate(input_path, output_path):
         n_total = r['total_runs']
         n_lin   = r['linear_error_m_n']
         n_str   = f'{n_lin}/{n_total}'
-        line = f'{r["mode"]:<8}{r["scenario"]:<10}{r["wind"]:<8}{n_str:>4}   '
+        line = f'{r["mode"]:<8}{r["scenario"]:<14}{n_str:>4}   '
         line += f'{lin:<22}{rot:<22}{eng:<22}'
         print(line)
     print()

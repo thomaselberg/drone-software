@@ -4,26 +4,26 @@
 # ═══════════════════════════════════════════════════════════════════════
 # Long-lived sim base stack. Mirrors start_base.sh (real flight) for the
 # sim environment. Launches Gazebo + PX4 SITL + autopilot + synthetic
-# camera + ArUco detector + wind generator (optional) + KPI logger, then
-# waits. The mission is started SEPARATELY in another terminal.
+# camera + ArUco detector + KPI logger, then waits. The mission is
+# started SEPARATELY in another terminal.
 #
 # Two-terminal workflow (identical shape to real flight):
 #
-#   Terminal A:  ./start_sim_base.sh GIMBAL DYNAMIC none
+#   Terminal A:  ./start_sim_base.sh GIMBAL DYNAMIC
 #   Terminal B:  ros2 run thyra vision_landing_mission.py --ros-args \
 #                    -p mode:=GIMBAL -p scenario:=DYNAMIC \
-#                    -p wind_scenario:=none -p takeoff_alt:=1.5
+#                    -p takeoff_alt:=1.5
 #
 # Use this for iterative tuning: kill the mission with Ctrl+C, edit
 # gains, run it again — Gazebo and PX4 stay up the whole time.
 #
 # For one-shot end-to-end runs (and the batch runner), use
-# start_comparison_sim.sh instead — it does its own teardown.
+# start_sim.sh instead — it does its own teardown.
 #
 # Usage:
-#   ./start_sim_base.sh                            # defaults: GIMBAL DYNAMIC none
-#   ./start_sim_base.sh STATIC STATIC none
-#   ./start_sim_base.sh GIMBAL DYNAMIC gust2
+#   ./start_sim_base.sh                            # defaults: GIMBAL DYNAMIC
+#   ./start_sim_base.sh STATIC STATIC
+#   ./start_sim_base.sh GIMBAL DYNAMIC_EASY
 # ═══════════════════════════════════════════════════════════════════════
 
 # ── Arguments ─────────────────────────────────────────────────────────
@@ -31,16 +31,22 @@ MODE_RAW="${1:-GIMBAL}"
 MODE=$(echo "$MODE_RAW" | tr '[:lower:]' '[:upper:]')
 SCENARIO_RAW="${2:-DYNAMIC}"
 SCENARIO=$(echo "$SCENARIO_RAW" | tr '[:lower:]' '[:upper:]')
-WIND="${3:-none}"
 
-# ── Scenario-dependent target spawn ──────────────────────────────────
-if [ "$SCENARIO" == "DYNAMIC" ]; then
-    TARGET_DIST="-1.0"    # 1m South (NED: negative X = South)
-    CAM_SCENARIO="MOVING"
-else
-    TARGET_DIST="10.0"    # 10m North
-    CAM_SCENARIO="STATIC"
-fi
+# ── Scenario-dependent target spawn + camera scenario ────────────────
+case "$SCENARIO" in
+    DYNAMIC)
+        TARGET_DIST="-1.0"
+        CAM_SCENARIO="MOVING"
+        ;;
+    DYNAMIC_EASY)
+        TARGET_DIST="1.0"
+        CAM_SCENARIO="MOVING_EASY"
+        ;;
+    *)
+        TARGET_DIST="10.0"
+        CAM_SCENARIO="STATIC"
+        ;;
+esac
 
 # ── Colors ────────────────────────────────────────────────────────────
 GREEN='\033[0;32m'
@@ -56,7 +62,7 @@ export DISPLAY=${DISPLAY:-:1}
 
 echo -e "${BLUE}═══════════════════════════════════════════════════${NC}"
 echo -e "${CYAN}${BOLD}   SIM BASE STACK (mission runs in a second terminal)${NC}"
-echo -e "${CYAN}   Mode: ${GREEN}${MODE}${CYAN}   Scenario: ${GREEN}${SCENARIO}${CYAN}   Wind: ${GREEN}${WIND}${NC}"
+echo -e "${CYAN}   Mode: ${GREEN}${MODE}${CYAN}   Scenario: ${GREEN}${SCENARIO}${NC}"
 echo -e "${CYAN}   Target spawn: ${GREEN}${TARGET_DIST} m${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════${NC}"
 
@@ -66,10 +72,8 @@ pkill -9 -f "vision_landing_mission" 2>/dev/null
 pkill -9 -f "bench_dry_test"         2>/dev/null
 pkill -9 -f "kpi_logger_sim"         2>/dev/null
 pkill -9 -f "kpi_logger_real"        2>/dev/null
-pkill -9 -f "mission_comparison"     2>/dev/null
-pkill -9 -f "synthetic_cam_comparison" 2>/dev/null
-pkill -9 -f "aruco_detector_comparison" 2>/dev/null
-pkill -9 -f "wind_gust_generator"    2>/dev/null
+pkill -9 -f "synthetic_cam" 2>/dev/null
+pkill -9 -f "aruco_detector" 2>/dev/null
 pkill -9 -f "thyra_sim.launch"       2>/dev/null
 pkill -9 -f MicroXRCEAgent           2>/dev/null
 pkill -9 -f "gz sim"                 2>/dev/null
@@ -106,7 +110,7 @@ elif [ "$SKIP_QGC" == "true" ]; then
 fi
 
 # ── 4. Launch base simulation (Gazebo + PX4 SITL + autopilot) ────────
-echo -e "${BLUE}>>> [1/5] Launching thyra_sim.launch.py...${NC}"
+echo -e "${BLUE}>>> [1/4] Launching thyra_sim.launch.py...${NC}"
 ros2 launch thyra thyra_sim.launch.py 2>&1 | tee /tmp/sim_base.log &
 SIM_PID=$!
 
@@ -128,8 +132,8 @@ while true; do
 done
 
 # ── 6. Launch Synthetic Camera + Target Engine ───────────────────────
-echo -e "${BLUE}>>> [2/5] Launching synthetic camera (${CAM_SCENARIO})...${NC}"
-ros2 run thyra synthetic_cam_comparison.py --ros-args \
+echo -e "${BLUE}>>> [2/4] Launching synthetic camera (${CAM_SCENARIO})...${NC}"
+ros2 run thyra synthetic_cam.py --ros-args \
     -p target_start_x:="${TARGET_DIST}" \
     -p target_start_y:=0.0 \
     -p scenario:="${CAM_SCENARIO}" \
@@ -140,27 +144,15 @@ ros2 run thyra synthetic_cam_comparison.py --ros-args \
 CAM_PID=$!
 
 # ── 7. Launch ArUco Detector (C++) ───────────────────────────────────
-echo -e "${BLUE}>>> [3/5] Launching ArUco detector (C++)...${NC}"
-ros2 run thyra aruco_detector_comparison --ros-args -p show_window:=true &
+echo -e "${BLUE}>>> [3/4] Launching ArUco detector (C++)...${NC}"
+ros2 run thyra aruco_detector --ros-args -p show_window:=true &
 DET_PID=$!
 
-# ── 8. Launch Wind Gust Generator ────────────────────────────────────
-WIND_PID=""
-if [ "$WIND" != "none" ]; then
-    echo -e "${BLUE}>>> [4/5] Launching wind gust generator (${WIND})...${NC}"
-    ros2 run thyra wind_gust_generator.py --ros-args \
-        -p scenario:="${WIND}" &
-    WIND_PID=$!
-else
-    echo -e "${YELLOW}>>> [4/5] Skipping wind gust generator (none)${NC}"
-fi
-
-# ── 9. Launch KPI Logger (sim) ───────────────────────────────────────
-echo -e "${BLUE}>>> [5/5] Launching KPI logger (sim)...${NC}"
+# ── 8. Launch KPI Logger (sim) ───────────────────────────────────────
+echo -e "${BLUE}>>> [4/4] Launching KPI logger (sim)...${NC}"
 ros2 run thyra kpi_logger_sim.py --ros-args \
     -p mode:="${MODE}" \
-    -p scenario:="${SCENARIO}" \
-    -p wind_scenario:="${WIND}" &
+    -p scenario:="${SCENARIO}" &
 KPI_PID=$!
 
 # ── Banner ────────────────────────────────────────────────────────────
@@ -171,7 +163,6 @@ echo -e "${GREEN}║                                                            
 echo -e "${GREEN}║    cd ~/drone-software && source install/setup.bash           ║${NC}"
 echo -e "${GREEN}║    ros2 run thyra vision_landing_mission.py --ros-args \\      ║${NC}"
 echo -e "${GREEN}║      -p mode:=${MODE} -p scenario:=${SCENARIO} \\                   ║${NC}"
-echo -e "${GREEN}║      -p wind_scenario:=${WIND} \\                                ║${NC}"
 echo -e "${GREEN}║      -p takeoff_alt:=1.5 \\                                    ║${NC}"
 echo -e "${GREEN}║      -p target_start_x:=${TARGET_DIST} -p target_start_y:=0.0       ║${NC}"
 echo -e "${GREEN}║                                                               ║${NC}"
@@ -183,14 +174,13 @@ echo ""
 
 # ── Shutdown handler ──────────────────────────────────────────────────
 trap "echo -e '${RED}Shutting down sim base...${NC}'; \
-      kill \$SIM_PID \$CAM_PID \$DET_PID \$WIND_PID \$KPI_PID 2>/dev/null; \
+      kill \$SIM_PID \$CAM_PID \$DET_PID \$KPI_PID 2>/dev/null; \
       sleep 1; \
       pkill -9 -f vision_landing_mission 2>/dev/null; \
       pkill -9 -f bench_dry_test 2>/dev/null; \
       pkill -9 -f kpi_logger 2>/dev/null; \
-      pkill -9 -f synthetic_cam_comparison 2>/dev/null; \
-      pkill -9 -f aruco_detector_comparison 2>/dev/null; \
-      pkill -9 -f wind_gust_generator 2>/dev/null; \
+      pkill -9 -f synthetic_cam 2>/dev/null; \
+      pkill -9 -f aruco_detector 2>/dev/null; \
       pkill -9 -f thyra_sim.launch 2>/dev/null; \
       pkill -9 -f MicroXRCEAgent 2>/dev/null; \
       pkill -9 -f 'gz sim' 2>/dev/null; \

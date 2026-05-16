@@ -1,0 +1,5 @@
+run,repeat,mode,scenario,wind,linear_error_m,rotation_error_deg,engagement_s,csv_file
+1,1,STATIC,STATIC,medium,0.0791,0.14,9.01,static_static_medium_183802.csv
+2,2,STATIC,STATIC,medium,0.1051,0.04,8.63,static_static_medium_183900.csv
+3,3,STATIC,STATIC,medium,0.0867,0.08,9.34,static_static_medium_183959.csv
+4,4,STATIC,STATIC,medium,TIMEOUT,TIMEOUT,TIMEOUT,N/A

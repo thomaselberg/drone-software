@@ -2,24 +2,27 @@
 # ═══════════════════════════════════════════════════════════════════════
 # start_batch_sim.sh
 # ═══════════════════════════════════════════════════════════════════════
-# Runs multiple comparison simulations back-to-back.
-# All simulation logic is consolidated here (no background sub-scripts).
+# Runs the sim end-to-end for every (MODE, SCENARIO) combination in
+# BATCH, REPEATS times each. Each run is fully self-contained: cleanup
+# → launch sim/cam/detector/mission/logger → wait for CSV → kill.
 #
 # Usage:
 #   ./start_batch_sim.sh
 # ═══════════════════════════════════════════════════════════════════════
 
 # ── Configuration ─────────────────────────────────────────────────────
-# Each entry: "MODE SCENARIO WIND"
+# Each entry: "MODE SCENARIO"
 BATCH=(
-    "STATIC STATIC none"
-    "GIMBAL STATIC none"
-    "STATIC DYNAMIC none"
-    "GIMBAL DYNAMIC none"
+    "STATIC STATIC"
+    "GIMBAL STATIC"
+    "STATIC DYNAMIC"
+    "GIMBAL DYNAMIC"
+    "STATIC DYNAMIC_EASY"
+    "GIMBAL DYNAMIC_EASY"
 )
 
 # Number of repeats per combination — total runs = ${#BATCH[@]} × REPEATS
-REPEATS=10
+REPEATS=5
 
 # Timeout per run (seconds) — force-kill if mission doesn't finish
 RUN_TIMEOUT=300
@@ -42,7 +45,7 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 SUMMARY_FILE="${RESULTS_DIR}/master_summary_${TIMESTAMP}.csv"
 
 # Write CSV header — `repeat` column added so aggregate_batch.py can group
-echo "run,repeat,mode,scenario,wind,linear_error_m,rotation_error_deg,engagement_s,csv_file" \
+echo "run,repeat,mode,scenario,linear_error_m,rotation_error_deg,engagement_s,csv_file" \
     > "$SUMMARY_FILE"
 
 TOTAL_RUNS=$((${#BATCH[@]} * REPEATS))
@@ -75,23 +78,32 @@ fi
 RUN_NUM=0
 
 for ENTRY in "${BATCH[@]}"; do
-    read -r MODE SCENARIO WIND <<< "$ENTRY"
+    read -r MODE SCENARIO <<< "$ENTRY"
+    MODE=$(echo "$MODE"         | tr '[:lower:]' '[:upper:]')
+    SCENARIO=$(echo "$SCENARIO" | tr '[:lower:]' '[:upper:]')
 
-    # ── Scenario-dependent target spawn ──────────────────────────────
-    if [ "$SCENARIO" == "DYNAMIC" ]; then
-        TARGET_DIST="-1.0"
-        CAM_SCENARIO="MOVING"
-    else
-        TARGET_DIST="10.0"
-        CAM_SCENARIO="STATIC"
-    fi
+    # ── Scenario-dependent target spawn + camera scenario ───────────
+    case "$SCENARIO" in
+        DYNAMIC)
+            TARGET_DIST="-1.0"
+            CAM_SCENARIO="MOVING"
+            ;;
+        DYNAMIC_EASY)
+            TARGET_DIST="1.0"
+            CAM_SCENARIO="MOVING_EASY"
+            ;;
+        *)
+            TARGET_DIST="10.0"
+            CAM_SCENARIO="STATIC"
+            ;;
+    esac
 
     for REP in $(seq 1 $REPEATS); do
     RUN_NUM=$((RUN_NUM + 1))
 
     echo ""
     echo -e "${BLUE}═══════════════════════════════════════════════════════${NC}"
-    echo -e "${CYAN}${BOLD}   RUN ${RUN_NUM}/${TOTAL_RUNS}: ${MODE} | ${SCENARIO} | ${WIND}  (repeat ${REP}/${REPEATS})${NC}"
+    echo -e "${CYAN}${BOLD}   RUN ${RUN_NUM}/${TOTAL_RUNS}: ${MODE} | ${SCENARIO}  (repeat ${REP}/${REPEATS})${NC}"
     echo -e "${CYAN}   Target Spawn: ${TARGET_DIST}m${NC}"
     echo -e "${BLUE}═══════════════════════════════════════════════════════${NC}"
 
@@ -99,10 +111,8 @@ for ENTRY in "${BATCH[@]}"; do
     echo -e "${YELLOW}>>> Cleaning up previous sessions...${NC}"
     pkill -f "vision_landing_mission"    2>/dev/null
     pkill -f "kpi_logger_sim"            2>/dev/null
-    pkill -f "mission_comparison"        2>/dev/null
-    pkill -f "synthetic_cam_comparison"  2>/dev/null
-    pkill -f "aruco_detector_comparison" 2>/dev/null
-    pkill -f "wind_gust_generator"       2>/dev/null
+    pkill -f "synthetic_cam"  2>/dev/null
+    pkill -f "aruco_detector" 2>/dev/null
     pkill -f "thyra_sim.launch"          2>/dev/null
     sleep 1
     pkill -f MicroXRCEAgent   2>/dev/null
@@ -113,16 +123,16 @@ for ENTRY in "${BATCH[@]}"; do
     pkill -9 -f px4           2>/dev/null
     sleep 2
 
-    rm -f /tmp/sim_output_comparison.log
+    rm -f /tmp/sim_output.log
 
     # ── 2. Launch base simulation ────────────────────────────────────
-    echo -e "${BLUE}>>> [1/5] Launching simulation...${NC}"
-    ros2 launch thyra thyra_sim.launch.py 2>&1 | tee /tmp/sim_output_comparison.log &
+    echo -e "${BLUE}>>> [1/4] Launching simulation...${NC}"
+    ros2 launch thyra thyra_sim.launch.py 2>&1 | tee /tmp/sim_output.log &
     SIM_PID=$!
 
     # ── 3. Launch Synthetic Camera ───────────────────────────────────
-    echo -e "${BLUE}>>> [2/5] Launching synthetic camera...${NC}"
-    ros2 run thyra synthetic_cam_comparison.py --ros-args \
+    echo -e "${BLUE}>>> [2/4] Launching synthetic camera...${NC}"
+    ros2 run thyra synthetic_cam.py --ros-args \
         -p target_start_x:="${TARGET_DIST}" \
         -p target_start_y:=0.0 \
         -p scenario:="${CAM_SCENARIO}" \
@@ -133,26 +143,15 @@ for ENTRY in "${BATCH[@]}"; do
     CAM_PID=$!
 
     # ── 4. Launch ArUco Detector (C++) ───────────────────────────────
-    echo -e "${BLUE}>>> [3/5] Launching ArUco detector (C++)...${NC}"
-    ros2 run thyra aruco_detector_comparison --ros-args -p show_window:=true &
+    echo -e "${BLUE}>>> [3/4] Launching ArUco detector (C++)...${NC}"
+    ros2 run thyra aruco_detector --ros-args -p show_window:=true &
     DET_PID=$!
 
-    # ── 5. Launch Wind Gust Generator ────────────────────────────────
-    WIND_PID=""
-    if [ "$WIND" != "none" ]; then
-        echo -e "${BLUE}>>> [4/5] Launching wind gust generator (${WIND})...${NC}"
-        ros2 run thyra wind_gust_generator.py --ros-args \
-            -p scenario:="${WIND}" &
-        WIND_PID=$!
-    else
-        echo -e "${YELLOW}>>> [4/5] Skipping wind gust generator (none)...${NC}"
-    fi
-
-    # ── 6. Wait for autopilot readiness ──────────────────────────────
+    # ── 5. Wait for autopilot readiness ──────────────────────────────
     echo -e "${YELLOW}>>> Waiting for THYRA OPERATIONAL...${NC}"
     WAIT_COUNT=0
     while true; do
-        if grep -q "THYRA OPERATIONAL" /tmp/sim_output_comparison.log 2>/dev/null; then
+        if grep -q "THYRA OPERATIONAL" /tmp/sim_output.log 2>/dev/null; then
             echo -e "${GREEN}>>> Autopilot Ready!${NC}"
             break
         fi
@@ -165,34 +164,32 @@ for ENTRY in "${BATCH[@]}"; do
     done
 
     if [ $WAIT_COUNT -ge 120 ]; then
-        echo "${RUN_NUM},${REP},${MODE},${SCENARIO},${WIND},STARTUP_FAIL,STARTUP_FAIL,STARTUP_FAIL,N/A" \
+        echo "${RUN_NUM},${REP},${MODE},${SCENARIO},STARTUP_FAIL,STARTUP_FAIL,STARTUP_FAIL,N/A" \
             >> "$SUMMARY_FILE"
         continue
     fi
 
-    # ── 7. Launch KPI Logger (sim) ───────────────────────────────────
+    # ── 6. Launch KPI Logger (sim) ───────────────────────────────────
     # Snapshot existing CSV files BEFORE launching logger + mission
     BEFORE_CSVS=$(ls -1 "$RESULTS_DIR"/*.csv 2>/dev/null | sort)
 
-    echo -e "${BLUE}>>> [5a/5] Launching KPI logger (sim)...${NC}"
+    echo -e "${BLUE}>>> [4a/4] Launching KPI logger (sim)...${NC}"
     ros2 run thyra kpi_logger_sim.py --ros-args \
         -p mode:="${MODE}" \
-        -p scenario:="${SCENARIO}" \
-        -p wind_scenario:="${WIND}" &
+        -p scenario:="${SCENARIO}" &
     KPI_PID=$!
 
-    # ── 8. Launch Mission Controller ─────────────────────────────────
-    echo -e "${GREEN}>>> [5b/5] Launching vision_landing_mission (${MODE}, ${SCENARIO}, ${WIND})...${NC}"
+    # ── 7. Launch Mission Controller ─────────────────────────────────
+    echo -e "${GREEN}>>> [4b/4] Launching vision_landing_mission (${MODE}, ${SCENARIO})...${NC}"
     ros2 run thyra vision_landing_mission.py --ros-args \
         -p mode:="${MODE}" \
         -p scenario:="${SCENARIO}" \
-        -p wind_scenario:="${WIND}" \
-        -p takeoff_alt:=1.5 \
+        -p takeoff_alt:=3.0 \
         -p target_start_x:="${TARGET_DIST}" \
         -p target_start_y:=0.0 &
     MISSION_PID=$!
 
-    # ── 9. Wait for mission node to appear ───────────────────────────
+    # ── 8. Wait for mission node to appear ───────────────────────────
     echo -e "${YELLOW}>>> Waiting for mission node to start...${NC}"
     for i in $(seq 1 30); do
         if pgrep -f "vision_landing_mission" > /dev/null 2>&1; then
@@ -202,7 +199,7 @@ for ENTRY in "${BATCH[@]}"; do
         sleep 1
     done
 
-    # ── 10. Monitor mission until CSV or timeout ─────────────────────
+    # ── 9. Monitor mission until CSV or timeout ──────────────────────
     ELAPSED=0
     NEW_CSV=""
     while [ $ELAPSED -lt $RUN_TIMEOUT ]; do
@@ -236,16 +233,16 @@ for ENTRY in "${BATCH[@]}"; do
     # ── 10. Extract KPIs from CSV and append to summary ──────────────
     if [ -n "$NEW_CSV" ] && [ -f "$NEW_CSV" ]; then
         DATA_LINE=$(tail -1 "$NEW_CSV")
-        LINEAR_ERR=$(echo "$DATA_LINE" | cut -d',' -f5)
-        ROT_ERR=$(echo "$DATA_LINE" | cut -d',' -f6)
-        ENGAGE=$(echo "$DATA_LINE" | cut -d',' -f7)
-        echo "${RUN_NUM},${REP},${MODE},${SCENARIO},${WIND},${LINEAR_ERR},${ROT_ERR},${ENGAGE},$(basename "$NEW_CSV")" \
+        LINEAR_ERR=$(echo "$DATA_LINE" | cut -d',' -f4)
+        ROT_ERR=$(echo "$DATA_LINE" | cut -d',' -f5)
+        ENGAGE=$(echo "$DATA_LINE" | cut -d',' -f6)
+        echo "${RUN_NUM},${REP},${MODE},${SCENARIO},${LINEAR_ERR},${ROT_ERR},${ENGAGE},$(basename "$NEW_CSV")" \
             >> "$SUMMARY_FILE"
         echo -e "${GREEN}  Linear Error  : ${LINEAR_ERR} m${NC}"
         echo -e "${GREEN}  Rotation Error: ${ROT_ERR}°${NC}"
         echo -e "${GREEN}  Engagement    : ${ENGAGE} s${NC}"
     else
-        echo "${RUN_NUM},${REP},${MODE},${SCENARIO},${WIND},TIMEOUT,TIMEOUT,TIMEOUT,N/A" \
+        echo "${RUN_NUM},${REP},${MODE},${SCENARIO},TIMEOUT,TIMEOUT,TIMEOUT,N/A" \
             >> "$SUMMARY_FILE"
         echo -e "${RED}  No CSV produced — logged as TIMEOUT${NC}"
     fi
@@ -256,10 +253,8 @@ done       # end BATCH loop
 echo -e "${YELLOW}>>> Final cleanup...${NC}"
 pkill -f "vision_landing_mission"    2>/dev/null
 pkill -f "kpi_logger_sim"            2>/dev/null
-pkill -f "mission_comparison"        2>/dev/null
-pkill -f "synthetic_cam_comparison"  2>/dev/null
-pkill -f "aruco_detector_comparison" 2>/dev/null
-pkill -f "wind_gust_generator"       2>/dev/null
+pkill -f "synthetic_cam"  2>/dev/null
+pkill -f "aruco_detector" 2>/dev/null
 pkill -f "thyra_sim.launch"          2>/dev/null
 sleep 1
 pkill -f MicroXRCEAgent   2>/dev/null

@@ -8,7 +8,7 @@ Subscribes to:
   /asr/mission/state                  (JSON String published by the mission)
   /asr/thyra/out/drone_state          (drone position/orientation)
   /fmu/out/vehicle_local_position     (altitude — backup, mission state already has it)
-  /asr/comparison/aruco_pixel_error   (pixel error + lock flag from detector)
+  /asr/aruco/pixel_error   (pixel error + lock flag from detector)
 
 No truth source on real flight, so no linear/rotation error columns.
 Records what we *can* measure: drone pose, altitude, gimbal target,

@@ -1,0 +1,2 @@
+mode,scenario,wind_scenario,linear_error_m,rotation_error_deg,engagement_duration_s,drone_x,drone_y,target_x,target_y
+static,dynamic,none,1.4825,43.85,17.48,7.5284,1.3574,6.3252,0.4914

@@ -18,7 +18,7 @@
 # Telemetry from the SSH PC (same ROS 2 network):
 #   ros2 topic echo /asr/mission/state                     # state machine + key vars
 #   rqt_image_view /camera/camera/color/image_raw          # raw RealSense
-#   rqt_image_view /asr/comparison/aruco_detector_image    # annotated detector overlay
+#   rqt_image_view /asr/aruco/detector_image    # annotated detector overlay
 # ═══════════════════════════════════════════════════════════════════════
 
 # ── Arguments ─────────────────────────────────────────────────────────
@@ -33,7 +33,6 @@ fi
 
 # Mode is fixed for real flight
 MODE="GIMBAL"
-WIND="none"
 
 # Known marker location for STATIC scenario (place the marker accordingly).
 # Override with TARGET_X / TARGET_Y env vars, e.g.:
@@ -64,8 +63,7 @@ pkill -9 -f "vision_landing_mission"  2>/dev/null
 pkill -9 -f "kpi_logger_real"         2>/dev/null
 pkill -9 -f "kpi_logger_sim"          2>/dev/null
 pkill -9 -f "real_flight_test"        2>/dev/null
-pkill -9 -f "mission_comparison"      2>/dev/null
-pkill -9 -f "aruco_detector_comparison" 2>/dev/null
+pkill -9 -f "aruco_detector" 2>/dev/null
 pkill -9 -f "thyra.launch"            2>/dev/null
 pkill -9 -f MicroXRCEAgent            2>/dev/null
 sleep 2
@@ -89,7 +87,7 @@ AP_PID=$!
 
 # ── 4. Launch ArUco Detector (C++, headless) ──────────────────────────
 echo -e "${BLUE}>>> [2/4] Launching ArUco detector (C++, headless)...${NC}"
-ros2 run thyra aruco_detector_comparison --ros-args -p show_window:=false &
+ros2 run thyra aruco_detector --ros-args -p show_window:=false &
 DET_PID=$!
 
 # ── 5. Wait for autopilot readiness ───────────────────────────────────
@@ -120,7 +118,6 @@ echo -e "${GREEN}>>> [4/4] Launching vision_landing_mission (${MODE}, ${SCENARIO
 ros2 run thyra vision_landing_mission.py --ros-args \
     -p mode:="${MODE}" \
     -p scenario:="${SCENARIO}" \
-    -p wind_scenario:="${WIND}" \
     -p takeoff_alt:="${TAKEOFF_ALT}" \
     -p target_start_x:="${TARGET_X}" \
     -p target_start_y:="${TARGET_Y}" &

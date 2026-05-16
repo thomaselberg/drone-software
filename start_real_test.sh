@@ -36,7 +36,7 @@ fi
 
 # 2. Launch ArUco detector (uses real RealSense camera)
 echo ">>> [2/3] Launching ArUco detector..."
-ros2 run thyra aruco_detector_comparison.py &
+ros2 run thyra aruco_detector.py &
 DET_PID=$!
 
 # 3. Wait for autopilot

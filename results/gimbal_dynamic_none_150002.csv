@@ -1,0 +1,2 @@
+time_ms,mode,scenario,wind_scenario,linear_error_m,rotation_error_deg,engagement_duration_s,drone_x,drone_y,target_x,target_y,altitude_m,state
+0,gimbal,dynamic,none,0.9791,96.15,0.00,-0.0210,0.0134,-1.0000,0.0000,0.153,ARMING

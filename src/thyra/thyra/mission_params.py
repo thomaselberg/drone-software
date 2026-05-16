@@ -20,10 +20,10 @@ class MissionParams:
     # KP is linearly interpolated by altitude: KP_HIGH at takeoff_alt,
     # KP_LOW at terminal_alt_trigger. Larger gains near the ground
     # compensate for the shrinking pixel→world conversion.
-    KP_HIGH: float = 0.50   # P-gain at takeoff_alt (interpolation top end)
-    KP_LOW:  float = 1.0    # P-gain at terminal_alt_trigger (bottom end)
+    KP_HIGH: float = 0.75   # P-gain at takeoff_alt (interpolation top end)
+    KP_LOW:  float = 1.5    # P-gain at terminal_alt_trigger (bottom end)
     KP_ALT:  float = 0.30   # Altitude-hold P gain
-    KP_YAW:  float = 0.03   # Yaw alignment P gain
+    KP_YAW:  float = 0.06   # Yaw alignment P gain
     MAX_VEL: float = 1.0    # Must match autopilot max_horizontal_velocity
 
     # ── Altitudes (metres, positive up) ─────────────────────────────
@@ -33,9 +33,9 @@ class MissionParams:
     descend_vz:           float = 0.5   # m/s downward
 
     # ── State-machine timing ────────────────────────────────────────
-    stabilize_high_time:    float = 0.2   # dwell after ground-error lower bound met
-    stabilize_high_timeout: float = 1.0  # safety cap on STABILIZE_HIGH
-    stabilize_low_time:     float = 0.1   # dwell at descend_alt before TERMINAL_LAND
+    stabilize_high_time:    float = 0.5   # dwell after ground-error lower bound met
+    stabilize_high_timeout: float = 2.0  # safety cap on STABILIZE_HIGH
+    stabilize_low_time:     float = 0.5   # dwell at descend_alt before TERMINAL_LAND
     slant_sweep_time:       float = 4.0   # gimbal 0 → -1 sweep duration
     hold_hover_s:           float = 2.0   # HOLD phase-1 (hover) duration before descending
     coast_decay_time:       float = 4.0   # Time to decay velocity to zero after lock loss
@@ -49,3 +49,11 @@ class MissionParams:
     # ── Default known marker position (STATIC scenario) ─────────────
     target_start_x: float = 10.0  # metres North in NED (STATIC target is always at 10m N)
     target_start_y: float = 0.0   # metres East  in NED
+
+    # ── Hardware geometry ───────────────────────────────────────────
+    # Camera mounted forward of drone center in body-X. The controller
+    # biases the visual servo by this distance (in the marker's forward
+    # direction) so the drone *center* — not the camera — ends up over
+    # the target. Synthetic cam uses the same value to render from the
+    # actual camera position so sim and real agree.
+    cam_offset_x: float = 0.25

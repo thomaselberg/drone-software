@@ -1,0 +1,5 @@
+run,mode,scenario,wind,linear_error_m,rotation_error_deg,engagement_s,csv_file
+1,STATIC,STATIC,none,7.9983,0.01,6.75,static_static_none_154821.csv
+2,GIMBAL,STATIC,none,0.0547,0.02,15.88,gimbal_static_none_154929.csv
+3,STATIC,DYNAMIC,none,9.5459,27.01,9.04,static_dynamic_none_155040.csv
+4,GIMBAL,DYNAMIC,none,7.6913,21.99,8.28,gimbal_dynamic_none_155145.csv

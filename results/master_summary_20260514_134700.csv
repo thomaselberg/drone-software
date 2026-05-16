@@ -1,0 +1,3 @@
+run,repeat,mode,scenario,wind,linear_error_m,rotation_error_deg,engagement_s,csv_file
+1,1,STATIC,STATIC,none,0.0921,0.08,9.29,static_static_none_134753.csv
+2,2,STATIC,STATIC,none,0.0844,0.00,9.29,static_static_none_134850.csv

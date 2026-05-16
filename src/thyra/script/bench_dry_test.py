@@ -77,11 +77,9 @@ class BenchDryTest(Node):
         # ── Runtime config (mirror vision_landing_mission) ────────────
         self.declare_parameter('mode', 'GIMBAL')
         self.declare_parameter('scenario', 'DYNAMIC')
-        self.declare_parameter('wind_scenario', 'none')
 
-        self.mode          = self.get_parameter('mode').value.upper()
-        self.scenario      = self.get_parameter('scenario').value.upper()
-        self.wind_scenario = self.get_parameter('wind_scenario').value
+        self.mode     = self.get_parameter('mode').value.upper()
+        self.scenario = self.get_parameter('scenario').value.upper()
 
         # ── Tuning params (all MissionParams fields are ROS-overridable) ─
         defaults = MissionParams()
@@ -119,7 +117,7 @@ class BenchDryTest(Node):
             VehicleLocalPosition, '/fmu/out/vehicle_local_position',
             self._lpos_cb, qos_sensor)
         self.create_subscription(
-            Vector3Stamped, '/asr/comparison/aruco_pixel_error',
+            Vector3Stamped, '/asr/aruco/pixel_error',
             self._pixel_cb, 10)
 
         # ── State variables ───────────────────────────────────────────
@@ -492,7 +490,6 @@ class BenchDryTest(Node):
             'state':            self.state,
             'mode':             'BENCH_DRY',
             'scenario':         self.scenario,
-            'wind_scenario':    'none',
             'locked':           bool(self.locked),
             'altitude_m':       float(self.virt_alt),
             'pixel_err_x':      float(self.pixel_err_x),

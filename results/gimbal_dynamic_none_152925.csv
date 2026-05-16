@@ -1,0 +1,2 @@
+mode,scenario,wind_scenario,linear_error_m,rotation_error_deg,engagement_duration_s,drone_x,drone_y,target_x,target_y
+gimbal,dynamic,none,0.1086,-19.12,18.43,7.0016,0.1172,6.8967,0.0892
