@@ -19,11 +19,15 @@ State machine:
         [STABILIZE_HIGH (DYNAMIC only)] → DESCEND_TO_LOW →
         STABILIZE_LOW → TERMINAL_LAND → DONE
 
-Lock-loss recovery (any tracking state — same for sim and real):
-  HOLD phase 1  (0-5 s)  : pitch=0, roll=0, alt-hold thrust at altitude-of-loss
-  HOLD phase 2  (>5 s)   : pitch=0, roll=0, descend at descend_vz m/s
-  Touchdown trigger      : alt < terminal_alt_trigger → send 'land' (PX4 takes over)
-  If lock returns        : exit HOLD, resume the previous tracking state
+Lock-loss recovery:
+  Most tracking states → HOLD:
+    phase 1  (0 .. hold_hover_s) : decaying lateral coast + alt-hold thrust
+    phase 2  (>= hold_hover_s)   : pitch=0, roll=0, descend at descend_vz m/s
+  TERMINAL_LAND lock loss → coast (no hover):
+    keep descending at descend_vz with decaying lateral commands
+    (we are already low; hovering wastes the final approach)
+  Touchdown trigger : alt < terminal_alt_trigger → send 'land' (PX4 takes over)
+  If lock returns   : resume the previous tracking state
 
 The 'land' command is bit-identical to the GUI Land button — both call
 DroneCommand action with command_type='land', which routes to the
@@ -192,6 +196,14 @@ class VisionLandingMission(Node):
         self.stab_high_threshold_seen = False
         self.stab_high_dwell_start    = None
 
+        # DYNAMIC SEARCH "wait for inbound target to pass" gate
+        self.prev_d_ground = None
+
+        # TERMINAL_LAND coast-on-loss bookkeeping
+        self.terminal_loss_start  = None
+        self.terminal_coast_pitch = 0.0
+        self.terminal_coast_roll  = 0.0
+
         # ── Timers ────────────────────────────────────────────────────
         self.create_timer(0.1, self._heartbeat_tick)        # 10 Hz heartbeat
         self.create_timer(0.05, self._mission_tick)         # 20 Hz state machine
@@ -308,15 +320,28 @@ class VisionLandingMission(Node):
         alt_err = target_alt - alt          # positive = too low
         return -self.KP_ALT * alt_err       # negative = climb
 
+    def _kp_for_altitude(self):
+        """Linear blend KP_HIGH → KP_LOW between takeoff_alt and
+        terminal_alt_trigger. Higher gain near the ground compensates
+        for the shrinking field of view per metre of error."""
+        alt = -self.local_pos.z
+        if alt >= self.takeoff_alt:
+            return self.KP_HIGH
+        if alt <= self.terminal_alt_trigger:
+            return self.KP_LOW
+        frac = (self.takeoff_alt - alt) / (self.takeoff_alt - self.terminal_alt_trigger)
+        return self.KP_HIGH + frac * (self.KP_LOW - self.KP_HIGH)
+
     def _track_target(self, descend_rate=0.0, kp=None):
         """
         Visual servo: pixel-error (NED ground meters) → body-frame velocity.
-        Caller picks descend_rate (vz target, positive down) and which kp.
+        Caller picks descend_rate (vz target, positive down). kp defaults
+        to the altitude-scheduled value; pass an explicit kp to override.
         Lock loss is handled centrally in _mission_tick — this method
         assumes self.locked is True at call time.
         """
         if kp is None:
-            kp = self.KP_LOW
+            kp = self._kp_for_altitude()
 
         yaw = self.drone_state.orientation[2] if len(self.drone_state.orientation) >= 3 else 0.0
         cy, sy = math.cos(yaw), math.sin(yaw)
@@ -384,6 +409,35 @@ class VisionLandingMission(Node):
             self._send_vel(pitch=0.0, roll=0.0, yaw_vel=0.0,
                            thrust=self.descend_vz)
 
+    def _tick_terminal_coast(self):
+        """TERMINAL_LAND lock-loss handler. No hover phase — keep descending
+        at descend_vz while the lateral command decays over coast_decay_time.
+        Recovery is automatic: next tick with lock falls through to
+        _execute_slant_landing, which clears terminal_loss_start."""
+        alt = -self.local_pos.z
+        if alt < self.terminal_trig:
+            self.get_logger().info(
+                f'TERMINAL_LAND coast: alt {alt:.2f}m < {self.terminal_trig:.2f}m '
+                f'→ land (PX4 takes over)')
+            self._send_cmd('land')
+            self._transition(MissionState.DONE)
+            return
+
+        if self.terminal_loss_start is None:
+            self.terminal_loss_start  = self.get_clock().now()
+            self.terminal_coast_pitch = self.last_cmd_pitch
+            self.terminal_coast_roll  = self.last_cmd_roll
+            self.get_logger().warn(
+                f'TERMINAL_LAND lock lost at alt={alt:.2f}m '
+                f'— coasting descent at {self.descend_vz:.2f}m/s')
+
+        elapsed_lost = (self.get_clock().now() - self.terminal_loss_start).nanoseconds / 1e9
+        factor = max(0.0, 1.0 - (elapsed_lost / self.coast_decay_time))
+        pitch = self.terminal_coast_pitch * factor
+        roll  = self.terminal_coast_roll  * factor
+        self._send_vel(pitch=pitch, roll=roll, yaw_vel=0.0,
+                       thrust=self.descend_vz)
+
     # ══════════════════════════════════════════════════════════════════
     #  Main state machine
     # ══════════════════════════════════════════════════════════════════
@@ -398,6 +452,13 @@ class VisionLandingMission(Node):
         if self.state in _TRACKING_STATES and not self.locked:
             in_static_terminal = (self.state == MissionState.TERMINAL_LAND
                                   and self.mode == 'STATIC')
+            if self.state == MissionState.TERMINAL_LAND and not in_static_terminal:
+                # GIMBAL terminal land: skip HOLD. We are already in the
+                # final descent — hovering at the loss altitude wastes 2s
+                # and the marker often won't reappear from up there. Coast
+                # laterally and keep descending.
+                self._tick_terminal_coast()
+                return
             if not in_static_terminal:
                 self._enter_hold()
                 return
@@ -452,18 +513,34 @@ class VisionLandingMission(Node):
 
             if self.locked:
                 d_ground = math.hypot(self.pixel_err_x, self.pixel_err_y)
-                if d_ground < 3.0:
-                    self.get_logger().info(
-                        f'ArUco LOCKED & ground err {d_ground:.2f}m < 3m')
+                if d_ground < self.ground_err_thresh:
                     if self.scenario == 'DYNAMIC':
-                        self._transition(MissionState.STABILIZE_HIGH)
+                        # Engaging the controller while an inbound target is
+                        # still closing in causes a violent backwards brake.
+                        # Wait until d_ground is no longer shrinking (target
+                        # has passed beneath us or stopped). Safety cap so we
+                        # eventually engage even if it never starts to open.
+                        approaching = (self.prev_d_ground is not None
+                                       and d_ground < self.prev_d_ground - 0.01)
+                        if not approaching or elapsed > self.search_wait_timeout:
+                            self.get_logger().info(
+                                f'SEARCH gate cleared  d_ground={d_ground:.2f}m  '
+                                f'approaching={approaching}  t={elapsed:.1f}s '
+                                f'→ STABILIZE_HIGH')
+                            self._transition(MissionState.STABILIZE_HIGH)
                     else:
+                        self.get_logger().info(
+                            f'ArUco LOCKED & ground err {d_ground:.2f}m '
+                            f'< {self.ground_err_thresh:.2f}m')
                         self._transition(MissionState.DESCEND_TO_LOW)
+                self.prev_d_ground = d_ground
+            else:
+                self.prev_d_ground = None
 
         elif self.state == MissionState.STABILIZE_HIGH:
             # Lock guaranteed (lock-loss check above would have gone to HOLD)
             thrust = self._alt_hold_thrust(self.takeoff_alt)
-            self._track_target(descend_rate=thrust, kp=self.KP_HIGH)
+            self._track_target(descend_rate=thrust)
             d_ground = math.hypot(self.pixel_err_x, self.pixel_err_y)
 
             # Lower bound: arm the dwell timer the first time ground_err drops
@@ -504,11 +581,11 @@ class VisionLandingMission(Node):
                 self.get_logger().info(f'Alt {alt:.2f}m → STABILIZE_LOW')
                 self._transition(MissionState.STABILIZE_LOW)
             else:
-                self._track_target(descend_rate=self.descend_vz, kp=self.KP_LOW)
+                self._track_target(descend_rate=self.descend_vz)
 
         elif self.state == MissionState.STABILIZE_LOW:
             thrust = self._alt_hold_thrust(self.descend_alt)
-            self._track_target(descend_rate=thrust, kp=self.KP_LOW)
+            self._track_target(descend_rate=thrust)
             if elapsed >= self.stabilize_low_time:
                 self.get_logger().info('Stable at low alt → TERMINAL_LAND')
                 self.terminal_start = time.monotonic()
@@ -572,13 +649,18 @@ class VisionLandingMission(Node):
         """Sweep gimbal from 45° (0.0) → straight down (-1.0) over
         slant_sweep_time, then begin vertical descent. Visual servo keeps
         the marker centred for the duration."""
+        # Reached here means we have lock — clear any pending coast state.
+        if self.terminal_loss_start is not None:
+            self.get_logger().info('TERMINAL_LAND lock recovered → resume tracking')
+            self.terminal_loss_start = None
+
         dt_sweep = time.monotonic() - self.terminal_start
         frac = min(dt_sweep / self.slant_sweep_time, 1.0)
         target_val = 0.0 - frac * 1.0       # 0.0 (45°) → -1.0 (down)
         self._set_gimbal(target_val)
 
         vz = self.descend_vz if dt_sweep > (self.slant_sweep_time + 1.0) else 0.0
-        self._track_target(descend_rate=vz, kp=self.KP_LOW)
+        self._track_target(descend_rate=vz)
         # Touchdown trigger handled in _mission_tick
 
     # ══════════════════════════════════════════════════════════════════
