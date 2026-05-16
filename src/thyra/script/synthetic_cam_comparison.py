@@ -40,10 +40,22 @@ import time
 # ---------------------------------------------------------------------------
 _ARUCO_DICT = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_50)
 
-def _get_marker_bits(marker_id: int) -> np.ndarray:
-    return cv2.aruco.drawMarker(_ARUCO_DICT, marker_id, 8)
-
-MARKER_BITS = _get_marker_bits(0)
+# Pre-rendered high-resolution marker, used as the source for a per-frame
+# perspective warp. The previous renderer drew 64 individual fillPoly bit
+# cells whose int32 rounding introduced sub-pixel gaps/overlaps at slants
+# — the detector's adaptive threshold then failed to decode the pattern
+# when the drone got close at 45°. With a warp from a clean reference
+# image, edges are interpolated correctly at any pose.
+_MARKER_PX  = 160                       # 20 px per cell, plenty for the detector
+MARKER_IMG  = cv2.cvtColor(
+    cv2.aruco.drawMarker(_ARUCO_DICT, 0, _MARKER_PX),
+    cv2.COLOR_GRAY2BGR)
+_SRC_CORNERS = np.array([
+    [0,             0            ],
+    [_MARKER_PX-1,  0            ],
+    [_MARKER_PX-1,  _MARKER_PX-1 ],
+    [0,             _MARKER_PX-1 ],
+], dtype=np.float32)
 
 
 class SyntheticComparisonCam(Node):
@@ -75,7 +87,7 @@ class SyntheticComparisonCam(Node):
         self.f_px   = (self.width / 2.0) / math.tan(hfov_rad / 2.0)
 
         # DYNAMIC velocity constants
-        self.VX_MAX = 0.5  # m/s max forward (North) velocity
+        self.VX_MAX = 0.2  # m/s max forward (North) velocity
 
         self.target_vx = 0.0
         self.target_vy = 0.0
@@ -143,16 +155,16 @@ class SyntheticComparisonCam(Node):
             if self.target_started:
                 # North velocity: always forward, never negative
                 # (sin + 1.0) * (vx_max / 2.0) → [0, vx_max]
-                self.target_vx = (math.sin(now * 0.2) + 1.0) * (self.VX_MAX / 2.0)
+                self.target_vx = (math.sin(now * 0.2) + 1.0) * (self.VX_MAX / 2.0) + 0.2 # added constant to make sure it never stops moving entirely
 
                 # Lateral velocity: three overlapping sinusoids with irrational
                 # frequency ratios — smooth but effectively never-repeating
-                vy_raw = (0.25 * math.sin(now * math.pi / 7.0)
-                        + 0.15 * math.sin(now * math.sqrt(2.0) / 3.0)
-                        + 0.10 * math.sin(now * math.e / 11.0))
+                vy_raw = (0.125 * math.sin(now * math.pi / 7.0)
+                        + 0.075 * math.sin(now * math.sqrt(2.0) / 3.0)
+                        + 0.05 * math.sin(now * math.e / 11.0))
 
                 # Clamp lateral to ±0.5 × forward velocity (max ~45° turns)
-                vy_limit = 0.5 * self.target_vx
+                vy_limit = 0.25 * self.target_vx
                 self.target_vy = max(-vy_limit, min(vy_limit, vy_raw))
 
                 # Integrate position
@@ -237,25 +249,16 @@ class SyntheticComparisonCam(Node):
             else: all_vis = False; break
 
         if all_vis and len(dst_pts) == 4:
-            tl, tr, br, bl = [np.array(p) for p in dst_pts]
-            cv2.fillPoly(img, [np.array([tl, tr, br, bl], dtype=np.int32)], (255, 255, 255))
-
-            # Draw the 8x8 ArUco bit pattern
-            # Rows go top→bottom (TL→BL), columns go left→right (TL→TR)
-            for row in range(8):
-                v0, v1 = row / 8.0, (row + 1) / 8.0
-                l0 = tl + (bl - tl) * v0   # left edge, interpolating top→bottom
-                l1 = tl + (bl - tl) * v1
-                r0 = tr + (br - tr) * v0   # right edge, interpolating top→bottom
-                r1 = tr + (br - tr) * v1
-                for col in range(8):
-                    if MARKER_BITS[row, col] == 0:
-                        h0, h1 = col / 8.0, (col + 1) / 8.0
-                        p0 = l0 + (r0 - l0) * h0
-                        p1 = l0 + (r0 - l0) * h1
-                        p2 = l1 + (r1 - l1) * h1
-                        p3 = l1 + (r1 - l1) * h0
-                        cv2.fillPoly(img, [np.array([p0, p1, p2, p3], dtype=np.int32)], (0, 0, 0))
+            # Warp the high-resolution reference marker onto the projected
+            # quad. BORDER_TRANSPARENT leaves pixels outside the warped
+            # region untouched, so the scene background (grid + base color)
+            # stays visible without an explicit mask.
+            H = cv2.getPerspectiveTransform(
+                _SRC_CORNERS, np.array(dst_pts, dtype=np.float32))
+            cv2.warpPerspective(
+                MARKER_IMG, H, (self.width, self.height),
+                dst=img, borderMode=cv2.BORDER_TRANSPARENT,
+                flags=cv2.INTER_LINEAR)
 
         # 4. Whiteout
         if self.whiteout_duration > 0:
