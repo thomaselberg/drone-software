@@ -104,7 +104,7 @@ ros2 run thyra synthetic_cam.py --ros-args \
     -p target_start_x:="${TARGET_DIST}" \
     -p target_start_y:=0.0 \
     -p scenario:="${CAM_SCENARIO}" \
-    -p marker_size_m:=0.6 \
+    -p marker_size_m:=0.3 \
     -p whiteout_interval_s:=10.0 \
     -p whiteout_duration_s:=0.2 \
     -p camera_pitch_deg:=45.0 &

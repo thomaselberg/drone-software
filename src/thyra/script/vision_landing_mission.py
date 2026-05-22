@@ -283,18 +283,30 @@ class VisionLandingMission(Node):
         """Publish gimbal target on both topics:
            - Float64 /gimbal/cmd_pitch  (consumed by detector + synthetic cam)
            - ServoCommand /asr/thyra/in/servo_command (drives real AUX servo)
-        Convention: -1.0 = straight down, 0.0 = 45°, +1.0 = horizon."""
+        Convention: -1.0 = straight down, 0.0 = 45°, +1.0 = horizon.
+
+        The Float64 carries the *logical* value (the synthetic cam and
+        detector interpret it directly). The ServoCommand carries a
+        calibrated value: the real AUX servo's measured endpoints differ
+        from the ideal, so a 2-point linear map sends the value that
+        actually puts the physical gimbal where the logical value asks.
+        """
         self.gimbal_angle_norm = val
 
         msg_f64 = Float64()
         msg_f64.data = float(val)
         self.pub_gimbal.publish(msg_f64)
 
+        # Linear calibration: logical -1.0 → gimbal_down_cmd, 0.0 → gimbal_45_cmd.
+        servo_val = self.gimbal_down_cmd + \
+            (self.gimbal_45_cmd - self.gimbal_down_cmd) * (val + 1.0)
+        servo_val = max(-1.0, min(1.0, servo_val))
+
         msg_servo = ServoCommand()
         msg_servo.timestamp = int(self.get_clock().now().nanoseconds / 1_000)
         msg_servo.aux_index = 0     # AUX1
         msg_servo.id        = 0     # GimbalState::Auto
-        msg_servo.value     = float(val)
+        msg_servo.value     = float(servo_val)
         self.pub_servo.publish(msg_servo)
 
     def _elapsed(self):

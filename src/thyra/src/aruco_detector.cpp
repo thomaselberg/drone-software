@@ -30,7 +30,7 @@ public:
         double hfov_rad = 85.0 * M_PI / 180.0;
         f_px_ = (w_ / 2.0) / std::tan(hfov_rad / 2.0);
 
-        aruco_dict_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_50);
+        aruco_dict_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
         aruco_params_ = cv::aruco::DetectorParameters::create();
         aruco_params_->minMarkerPerimeterRate = 0.01;
         aruco_params_->perspectiveRemovePixelPerCell = 4;

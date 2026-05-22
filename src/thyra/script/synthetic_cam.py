@@ -48,15 +48,16 @@ import time
 # ---------------------------------------------------------------------------
 # ArUco helpers
 # ---------------------------------------------------------------------------
-_ARUCO_DICT = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_50)
+_ARUCO_DICT = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
 
 # Pre-rendered high-resolution marker, used as the source for a per-frame
-# perspective warp. The previous renderer drew 64 individual fillPoly bit
+# perspective warp. The previous renderer drew individual fillPoly bit
 # cells whose int32 rounding introduced sub-pixel gaps/overlaps at slants
 # — the detector's adaptive threshold then failed to decode the pattern
 # when the drone got close at 45°. With a warp from a clean reference
 # image, edges are interpolated correctly at any pose.
-_MARKER_PX  = 160                       # 20 px per cell, plenty for the detector
+# 180 = 6×30: a 4X4 marker is a 6×6 cell grid, so this gives clean cells.
+_MARKER_PX  = 180
 MARKER_IMG  = cv2.cvtColor(
     cv2.aruco.drawMarker(_ARUCO_DICT, 0, _MARKER_PX),
     cv2.COLOR_GRAY2BGR)
@@ -77,12 +78,12 @@ class SyntheticCam(Node):
         self.declare_parameter('whiteout_interval_s', 10.0)
         self.declare_parameter('whiteout_duration_s', 0.2)
         self.declare_parameter('camera_pitch_deg', 45.0)
-        self.declare_parameter('marker_size_m', 0.6)
+        self.declare_parameter('marker_size_m', 0.3)
         self.declare_parameter('width', 640)
         self.declare_parameter('height', 480)
         self.declare_parameter('hfov_deg', 85.0)
         self.declare_parameter('scenario', 'MOVING')  # STATIC, MOVING, or MOVING_EASY
-        self.declare_parameter('cam_offset_x', 0.25)  # camera fwd of drone center [m]
+        self.declare_parameter('cam_offset_x', 0.15)  # camera fwd of drone center [m]
 
         self.scenario = self.get_parameter('scenario').value.upper()
         self.target_x = self.get_parameter('target_start_x').value

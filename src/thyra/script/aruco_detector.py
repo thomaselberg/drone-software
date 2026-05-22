@@ -8,7 +8,7 @@ for quick iteration in sim.
 
 Pipeline:
   1. Subscribe to the camera image feed.
-  2. Detect ArUco marker (ID 0, DICT_6X6_50).
+  2. Detect ArUco marker (ID 0, DICT_4X4_50).
   3. Compute ground-projected linear error in meters (for centering).
   4. Compute ground-projected relative yaw in degrees (for heading).
   5. Publish detection result as a Vector3Stamped:
@@ -50,7 +50,7 @@ from std_msgs.msg import Float64
 from interfaces.msg import DroneState
 
 
-_ARUCO_DICT   = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_50)
+_ARUCO_DICT   = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
 _ARUCO_PARAMS = cv2.aruco.DetectorParameters_create()
 _ARUCO_PARAMS.minMarkerPerimeterRate = 0.01
 _ARUCO_PARAMS.perspectiveRemovePixelPerCell = 4

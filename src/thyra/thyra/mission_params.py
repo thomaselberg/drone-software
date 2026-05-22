@@ -56,4 +56,14 @@ class MissionParams:
     # direction) so the drone *center* — not the camera — ends up over
     # the target. Synthetic cam uses the same value to render from the
     # actual camera position so sim and real agree.
-    cam_offset_x: float = 0.25
+    cam_offset_x: float = 0.15
+
+    # ── Gimbal servo calibration (real flight only) ─────────────────
+    # The mission's logical gimbal value is -1.0=down, 0.0=45°, +1.0=
+    # horizon. _set_gimbal linearly maps the logical value to the
+    # measured servo command for the ServoCommand topic only; the
+    # logical value still goes out on /gimbal/cmd_pitch unchanged, so
+    # the synthetic cam is unaffected. Re-measure and override these
+    # via ROS params before a real flight if the servo shifts.
+    gimbal_down_cmd: float = -0.95  # servo value for straight-down
+    gimbal_45_cmd:   float = 0.10   # servo value for 45° slant

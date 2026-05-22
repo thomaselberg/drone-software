@@ -10,15 +10,16 @@ Subscribes to:
   /fmu/out/vehicle_local_position     (altitude — backup, mission state already has it)
   /asr/aruco/pixel_error   (pixel error + lock flag from detector)
 
-No truth source on real flight, so no linear/rotation error columns.
-Records what we *can* measure: drone pose, altitude, gimbal target,
-pixel error, lock flag, mission state.
+No truth source on real flight, so no linear error column. Rotation
+error comes from the detector's relative_yaw_deg (marker heading −
+drone yaw) — the only rotation reference available without truth.
 
   Filename: real_{scenario}_{HHMMSS}.csv
   Columns:  time_ms, scenario,
-            drone_x, drone_y, drone_yaw_rad, altitude_m,
+            drone_x, drone_y, drone_yaw_rad, rotation_error_deg, altitude_m,
             pixel_err_x, pixel_err_y, ground_err_m,
-            gimbal_norm, locked, state
+            gimbal_norm, locked, state,
+            last_cmd_pitch, last_cmd_roll, last_cmd_yaw_vel, last_cmd_thrust
 
 Recording starts at first lock (mission state shows first_lock_ns > 0),
 samples every 100 ms, and stops when state == DONE.
@@ -144,6 +145,11 @@ class KpiLoggerReal(Node):
         locked = bool(st.get('locked', False))
         state = st.get('state', '')
 
+        # Rotation error: the detector's relative_yaw_deg (marker heading −
+        # drone yaw), already signed and wrapped to [-180, 180]. This is
+        # the only rotation reference available on real flight (no truth).
+        rot_err_deg = float(st.get('relative_yaw_deg', 0.0))
+
         # Commanded velocity vector (NEW — needed for tuning / bench analysis)
         last_cmd_pitch   = float(st.get('last_cmd_pitch',   0.0))
         last_cmd_roll    = float(st.get('last_cmd_roll',    0.0))
@@ -155,6 +161,7 @@ class KpiLoggerReal(Node):
             'drone_x':          f'{dx:.4f}',
             'drone_y':          f'{dy:.4f}',
             'drone_yaw_rad':    f'{d_yaw:.4f}',
+            'rotation_error_deg': f'{rot_err_deg:.2f}',
             'altitude_m':       f'{alt:.3f}',
             'pixel_err_x':      f'{px_x:.4f}',
             'pixel_err_y':      f'{px_y:.4f}',
@@ -184,7 +191,8 @@ class KpiLoggerReal(Node):
                 writer = csv.writer(f)
                 writer.writerow([
                     'time_ms', 'scenario',
-                    'drone_x', 'drone_y', 'drone_yaw_rad', 'altitude_m',
+                    'drone_x', 'drone_y', 'drone_yaw_rad', 'rotation_error_deg',
+                    'altitude_m',
                     'pixel_err_x', 'pixel_err_y', 'ground_err_m',
                     'gimbal_norm', 'locked', 'state',
                     'last_cmd_pitch', 'last_cmd_roll',
@@ -192,7 +200,8 @@ class KpiLoggerReal(Node):
                 for row in self.rows:
                     writer.writerow([
                         row['time_ms'], self.scenario_tag,
-                        row['drone_x'], row['drone_y'], row['drone_yaw_rad'], row['altitude_m'],
+                        row['drone_x'], row['drone_y'], row['drone_yaw_rad'],
+                        row['rotation_error_deg'], row['altitude_m'],
                         row['pixel_err_x'], row['pixel_err_y'], row['ground_err_m'],
                         row['gimbal_norm'], row['locked'], row['state'],
                         row['last_cmd_pitch'], row['last_cmd_roll'],

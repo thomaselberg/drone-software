@@ -141,9 +141,10 @@ class KpiLoggerSim(Node):
             tx = ty = t_heading = 0.0
 
         linear_err = math.hypot(dx - tx, dy - ty)
-        rot_err_rad = abs(d_yaw - t_heading)
-        if rot_err_rad > math.pi:
-            rot_err_rad = 2 * math.pi - rot_err_rad
+        # Signed rotation error (target heading − drone yaw), wrapped to
+        # [-180, 180]. Signed (not abs) so the plotted curve stays
+        # continuous through zero crossings instead of bouncing.
+        rot_err_rad = (t_heading - d_yaw + math.pi) % (2 * math.pi) - math.pi
         rot_err_deg = math.degrees(rot_err_rad)
 
         engagement_s = (now_ns - self.first_lock_ns) / 1e9 if self.first_lock_ns else 0.0
