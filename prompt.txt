@@ -88,3 +88,21 @@ Solution: Move the QGC launch logic out of the simulation script and into the ba
 5. Batch Script Timeouts
 Problem: The TIMEOUT and No CSV produced errors in the batch runner are a direct consequence of Issue #2. The drone crashes into the ground immediately, never completes its mission, and never triggers the _record_kpi() function.
 Solution: Fixing the altitude hold and target trigger will allow the drone to complete the mission, save the CSV, and allow the batch script to proceed normally.
+
+
+###########################
+22may
+
+i just had to run from terminal and not vscode - classic. both GUI and RQT view works
+
+[ERROR] [1779456133.032352538] [vision_landing_mission]: shutdown land failed: Failed to check if action server is available: rcl node's context is invalid, at ./src/rcl/node.c:404
+Failed to publish log message to rosout: publisher's context is invalid, at ./src/rcl/publisher.c:423
+
+The landing failsafe does not work when pressing ctrl c in the mission terminal, but in the simulation it simply hovered in place and i clicked land in the GUI to land it
+
+Another thing. When i used the Gimbal slider in the GUI with the real flight test it actually worked - but in sim it does not work. Is it not using the same topic? I would really like to use the exact same topic, such that the synthetic camera draws based on the actual gimbal command on the topic used by the GUI - even if that means we should rename some topics and edit some code. I cannot see why this would not be the ideal case that the synthetic camera is drawing the world based on the actual gimbal command which is moving the servo motor in real life too. The synthetic camera should basically just be a synthetic version of the realsense camera module and they are already publishing to the same topic, so now it just needs to correctly use the gimbal pitch command. The slider and the mission script should command the same topic. Propose the edits necessary to achieve this
+
+Lets increase the linear geofence to 15m
+
+When i send commands to takeoff to 5m it actually wont let me - it only takes off if the target altitude is below 4m - so i guess that is fine. In the simulation it does not trigger a landing when it hits the linear 10m geofence - it just hovers there. 
+

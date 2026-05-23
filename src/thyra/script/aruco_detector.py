@@ -33,7 +33,7 @@ Publishers:
 Subscribers:
   /camera/camera/color/image_raw    (sensor_msgs/Image)
   /asr/thyra/out/drone_state        (interfaces/DroneState)
-  /gimbal/cmd_pitch                 (std_msgs/Float64)
+  /asr/thyra/in/servo_command       (interfaces/ServoCommand — raw gimbal)
 """
 
 import rclpy
@@ -46,8 +46,7 @@ from cv_bridge import CvBridge
 import cv2
 import numpy as np
 import math
-from std_msgs.msg import Float64
-from interfaces.msg import DroneState
+from interfaces.msg import DroneState, ServoCommand
 
 
 _ARUCO_DICT   = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
@@ -68,6 +67,14 @@ class ArucoDetector(Node):
         self.mount_pitch = math.radians(45.0)
         self.gimbal_pitch = None
 
+        # Gimbal servo calibration — must match MissionParams.gimbal_*.
+        # /asr/thyra/in/servo_command carries raw servo values; these
+        # endpoints map a raw value back to the camera pitch.
+        self.declare_parameter('gimbal_down_cmd', -0.95)  # raw servo → straight down
+        self.declare_parameter('gimbal_45_cmd',    0.10)  # raw servo → 45° slant
+        self.gimbal_down_cmd = self.get_parameter('gimbal_down_cmd').value
+        self.gimbal_45_cmd   = self.get_parameter('gimbal_45_cmd').value
+
         # Camera intrinsics (must match the synthetic cam in sim and the
         # real RealSense in flight).
         self.w = 640
@@ -84,8 +91,12 @@ class ArucoDetector(Node):
             self._image_cb, qos_profile_sensor_data)
         self.create_subscription(
             DroneState, '/asr/thyra/out/drone_state', self._drone_cb, 10)
+        # Same raw-servo topic the mission and the GUI slider publish to.
+        # BEST_EFFORT accepts both the GUI's BEST_EFFORT publisher and the
+        # mission's default-RELIABLE publisher.
         self.create_subscription(
-            Float64, '/gimbal/cmd_pitch', self._gimbal_cb, 10)
+            ServoCommand, '/asr/thyra/in/servo_command',
+            self._gimbal_cb, qos_profile_sensor_data)
 
         self.get_logger().info('ArUco detector started')
 
@@ -93,9 +104,14 @@ class ArucoDetector(Node):
         self.drone_pos = list(msg.position)
         self.drone_att = list(msg.orientation)
 
-    def _gimbal_cb(self, msg: Float64):
-        # -1.0 = Straight Down (0 rad), 0.0 = 45° (π/4), +1.0 = Horizon (π/2)
-        self.gimbal_pitch = (msg.data + 1.0) * (math.pi / 4.0)
+    def _gimbal_cb(self, msg: ServoCommand):
+        # Raw servo command (GUI slider or mission). Map it to camera pitch
+        # via the measured endpoints: gimbal_down_cmd → straight down (0 rad),
+        # gimbal_45_cmd → 45° (π/4). Gimbal is AUX1 (aux_index 0).
+        if msg.aux_index != 0:
+            return
+        span = self.gimbal_45_cmd - self.gimbal_down_cmd
+        self.gimbal_pitch = (math.pi / 4.0) * (msg.value - self.gimbal_down_cmd) / span
 
     def _to_ground(self, u, v, alt):
         """Project pixel (u,v) to ground plane NED meters relative to drone."""

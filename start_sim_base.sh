@@ -29,7 +29,7 @@
 # ── Arguments ─────────────────────────────────────────────────────────
 MODE_RAW="${1:-GIMBAL}"
 MODE=$(echo "$MODE_RAW" | tr '[:lower:]' '[:upper:]')
-SCENARIO_RAW="${2:-DYNAMIC}"
+SCENARIO_RAW="${2:-STATIC}"
 SCENARIO=$(echo "$SCENARIO_RAW" | tr '[:lower:]' '[:upper:]')
 
 # ── Scenario-dependent target spawn + camera scenario ────────────────

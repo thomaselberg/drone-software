@@ -13,16 +13,14 @@
 # ── Configuration ─────────────────────────────────────────────────────
 # Each entry: "MODE SCENARIO"
 BATCH=(
-    "STATIC STATIC"
-    "GIMBAL STATIC"
     "STATIC DYNAMIC"
     "GIMBAL DYNAMIC"
-    "STATIC DYNAMIC_EASY"
-    "GIMBAL DYNAMIC_EASY"
+    "STATIC STATIC"
+    "GIMBAL STATIC"
 )
 
 # Number of repeats per combination — total runs = ${#BATCH[@]} × REPEATS
-REPEATS=5
+REPEATS=10
 
 # Timeout per run (seconds) — force-kill if mission doesn't finish
 RUN_TIMEOUT=300
@@ -184,7 +182,7 @@ for ENTRY in "${BATCH[@]}"; do
     ros2 run thyra vision_landing_mission.py --ros-args \
         -p mode:="${MODE}" \
         -p scenario:="${SCENARIO}" \
-        -p takeoff_alt:=3.0 \
+        -p takeoff_alt:=2.0 \
         -p target_start_x:="${TARGET_DIST}" \
         -p target_start_y:=0.0 &
     MISSION_PID=$!

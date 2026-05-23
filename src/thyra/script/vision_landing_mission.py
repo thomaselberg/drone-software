@@ -29,6 +29,10 @@ Lock-loss recovery:
   Touchdown trigger : alt < terminal_alt_trigger → send 'land' (PX4 takes over)
   If lock returns   : resume the previous tracking state
 
+Failsafes:
+  Stale local_pos : feed lost mid-flight → hold level lpos_grace_s, then land
+  Mission abort   : Ctrl+C while airborne → command 'land' before exiting
+
 The 'land' command is bit-identical to the GUI Land button — both call
 DroneCommand action with command_type='land', which routes to the
 autopilot's executeLand → setDroneMode(BEGIN_LAND_POSITION) → landPositionMode().
@@ -45,13 +49,14 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPo
 from interfaces.action import DroneCommand
 from interfaces.msg import ManualControlInput, GcsHeartbeat, DroneState, ServoCommand
 from geometry_msgs.msg import Vector3Stamped, TwistStamped
-from std_msgs.msg import Float64, String
+from std_msgs.msg import String
 from px4_msgs.msg import VehicleLocalPosition
 
 from thyra.mission_params import MissionParams
 
 import json
 import math
+import signal
 import time
 
 
@@ -124,8 +129,6 @@ class VisionLandingMission(Node):
             ManualControlInput, '/asr/thyra/in/manual_input', qos_manual)
         self.pub_heartbeat = self.create_publisher(
             GcsHeartbeat, '/asr/thyra/in/gcs_heartbeat', qos_hb)
-        self.pub_gimbal    = self.create_publisher(
-            Float64, '/gimbal/cmd_pitch', 10)
         self.pub_servo     = self.create_publisher(
             ServoCommand, '/asr/thyra/in/servo_command', 10)
         self.pub_state     = self.create_publisher(
@@ -195,14 +198,19 @@ class VisionLandingMission(Node):
         self.stab_high_threshold_seen = False
         self.stab_high_dwell_start    = None
 
-        # DYNAMIC SEARCH "wait for inbound target to pass" gate
-        self.prev_d_ground = None
-
         # TERMINAL_LAND coast-on-loss bookkeeping
         self.terminal_loss_start    = None
         self.terminal_coast_pitch   = 0.0
         self.terminal_coast_roll    = 0.0
         self.terminal_coast_yaw_vel = 0.0
+
+        # local_pos staleness failsafe bookkeeping
+        self.last_lpos_time  = None    # time of last VehicleLocalPosition msg
+        self.lpos_fail_start = None    # time the stale-lpos failsafe started
+
+        # Ctrl+C / SIGINT abort flag — set by the signal handler, picked up
+        # by _mission_tick while the node is still spinning (context alive).
+        self.abort_requested = False
 
         # ── Timers ────────────────────────────────────────────────────
         self.create_timer(0.1, self._heartbeat_tick)        # 10 Hz heartbeat
@@ -221,6 +229,7 @@ class VisionLandingMission(Node):
 
     def _lpos_cb(self, msg: VehicleLocalPosition):
         self.local_pos = msg
+        self.last_lpos_time = self.get_clock().now()
 
     def _pixel_cb(self, msg: Vector3Stamped):
         self.pixel_err_x = msg.vector.x
@@ -280,22 +289,16 @@ class VisionLandingMission(Node):
         self.pub_manual.publish(msg)
 
     def _set_gimbal(self, val):
-        """Publish gimbal target on both topics:
-           - Float64 /gimbal/cmd_pitch  (consumed by detector + synthetic cam)
-           - ServoCommand /asr/thyra/in/servo_command (drives real AUX servo)
-        Convention: -1.0 = straight down, 0.0 = 45°, +1.0 = horizon.
+        """Command the gimbal via ServoCommand on /asr/thyra/in/servo_command
+        — the same raw-servo topic the GUI slider publishes to.
 
-        The Float64 carries the *logical* value (the synthetic cam and
-        detector interpret it directly). The ServoCommand carries a
-        calibrated value: the real AUX servo's measured endpoints differ
-        from the ideal, so a 2-point linear map sends the value that
-        actually puts the physical gimbal where the logical value asks.
-        """
+        `val` is the mission's *logical* gimbal value (-1.0 = straight down,
+        0.0 = 45°, +1.0 = horizon). The 2-point calibration maps it to the
+        raw servo command the AUX servo actually needs: logical -1.0 →
+        gimbal_down_cmd, 0.0 → gimbal_45_cmd. The synthetic cam and detector
+        invert this same calibration to recover the camera angle, so sim
+        and real agree."""
         self.gimbal_angle_norm = val
-
-        msg_f64 = Float64()
-        msg_f64.data = float(val)
-        self.pub_gimbal.publish(msg_f64)
 
         # Linear calibration: logical -1.0 → gimbal_down_cmd, 0.0 → gimbal_45_cmd.
         servo_val = self.gimbal_down_cmd + \
@@ -311,6 +314,15 @@ class VisionLandingMission(Node):
 
     def _elapsed(self):
         return (self.get_clock().now() - self.state_start).nanoseconds / 1e9
+
+    def _lpos_stale(self):
+        """True once VehicleLocalPosition WAS arriving and then stopped for
+        longer than lpos_timeout. Never-received returns False — that is a
+        startup condition, not a mid-flight feed loss."""
+        if self.last_lpos_time is None:
+            return False
+        age = (self.get_clock().now() - self.last_lpos_time).nanoseconds / 1e9
+        return age > self.lpos_timeout
 
     def _transition(self, new_state):
         self.get_logger().info(f'STATE: {self.state} → {new_state}')
@@ -344,6 +356,16 @@ class VisionLandingMission(Node):
         frac = (self.takeoff_alt - alt) / (self.takeoff_alt - self.terminal_alt_trigger)
         return self.KP_HIGH + frac * (self.KP_LOW - self.KP_HIGH)
 
+    def _body_err(self):
+        """Rotate the NED ground error into the drone body frame.
+        Returns (err_fwd, err_side): err_fwd along body-X (forward, drives
+        the pitch command), err_side along body-Y (right, drives roll)."""
+        yaw = self.drone_state.orientation[2] if len(self.drone_state.orientation) >= 3 else 0.0
+        cy, sy = math.cos(yaw), math.sin(yaw)
+        err_fwd  =  self.pixel_err_x * cy + self.pixel_err_y * sy
+        err_side = -self.pixel_err_x * sy + self.pixel_err_y * cy
+        return err_fwd, err_side
+
     def _track_target(self, descend_rate=0.0, kp=None):
         """
         Visual servo: pixel-error (NED ground meters) → body-frame velocity.
@@ -355,11 +377,7 @@ class VisionLandingMission(Node):
         if kp is None:
             kp = self._kp_for_altitude()
 
-        yaw = self.drone_state.orientation[2] if len(self.drone_state.orientation) >= 3 else 0.0
-        cy, sy = math.cos(yaw), math.sin(yaw)
-
-        err_fwd  =  self.pixel_err_x * cy + self.pixel_err_y * sy
-        err_side = -self.pixel_err_x * sy + self.pixel_err_y * cy
+        err_fwd, err_side = self._body_err()
 
         # Compensate for the camera being mounted cam_offset_x forward of the
         # drone center. We want the *drone* — not the camera — to end up over
@@ -465,10 +483,60 @@ class VisionLandingMission(Node):
         self._send_vel(pitch=pitch, roll=roll, yaw_vel=yaw_vel,
                        thrust=self.descend_vz)
 
+    def _tick_lpos_failsafe(self):
+        """local_pos feed went stale mid-flight. Altitude and the touchdown
+        trigger can no longer be trusted, so: hold level for lpos_grace_s,
+        then hand off to PX4 land mode. If the feed recovers within the
+        window, the top-level check stops calling this and normal dispatch
+        resumes from wherever the mission was."""
+        if self.lpos_fail_start is None:
+            self.lpos_fail_start = self.get_clock().now()
+            self.get_logger().error(
+                'local_pos STALE mid-flight — failsafe: hold '
+                f'{self.lpos_grace_s:.0f}s then land')
+
+        elapsed_fail = (self.get_clock().now() - self.lpos_fail_start).nanoseconds / 1e9
+        if elapsed_fail < self.lpos_grace_s:
+            # Zero pitch/roll/yaw and zero vertical-velocity command. We do
+            # NOT use _alt_hold_thrust — its altitude input is the stale
+            # feed and would be open-loop. thrust=0 = hold; the autopilot's
+            # velocity controller keeps station on its own estimate.
+            self._send_vel(pitch=0.0, roll=0.0, yaw_vel=0.0, thrust=0.0)
+        else:
+            self.get_logger().warn(
+                'local_pos still stale after grace window → land (PX4 takes over)')
+            self._send_cmd('land')
+            self._transition(MissionState.DONE)
+
     # ══════════════════════════════════════════════════════════════════
     #  Main state machine
     # ══════════════════════════════════════════════════════════════════
     def _mission_tick(self):
+        airborne = self.state not in (
+            MissionState.IDLE, MissionState.ARMING, MissionState.DONE)
+
+        # ── Ctrl+C abort — pre-empts everything ──────────────────────
+        # The SIGINT handler only sets the flag; we act here, where the
+        # rcl context is still alive so the 'land' action can be sent.
+        if self.abort_requested and self.state != MissionState.DONE:
+            if airborne:
+                self.get_logger().warn('ABORT (Ctrl+C) → commanding LAND')
+                self._send_cmd('land')
+                self._transition(MissionState.DONE)
+            else:
+                self.get_logger().info('ABORT (Ctrl+C) on ground → exiting')
+                raise SystemExit(0)
+            return
+
+        # ── Stale local-position failsafe — pre-empts every flying state ──
+        # If the VehicleLocalPosition feed dies mid-flight, altitude-based
+        # control (alt-hold, touchdown trigger) is unsafe. Hold level, then
+        # land. This pre-empts HOLD and the TERMINAL_LAND coast.
+        if airborne and self._lpos_stale():
+            self._tick_lpos_failsafe()
+            return
+        self.lpos_fail_start = None   # feed fresh → clear the failsafe timer
+
         # ── HOLD has its own dispatcher ──────────────────────────────
         if self.state == MissionState.HOLD:
             self._tick_hold()
@@ -543,17 +611,18 @@ class VisionLandingMission(Node):
                 d_ground = math.hypot(self.pixel_err_x, self.pixel_err_y)
                 if d_ground < self.ground_err_thresh:
                     if self.scenario != 'STATIC':
-                        # Engaging the controller while an inbound target is
-                        # still closing in causes a violent backwards brake.
-                        # Wait until d_ground is no longer shrinking (target
-                        # has passed beneath us or stopped). Safety cap so we
-                        # eventually engage even if it never starts to open.
-                        approaching = (self.prev_d_ground is not None
-                                       and d_ground < self.prev_d_ground - 0.01)
-                        if not approaching or elapsed > self.search_wait_timeout:
+                        # Engage only once the target is AHEAD of the drone
+                        # (positive body-forward error) — so the very first
+                        # tracking command is a forward chase, never a
+                        # backward lurch. The lateral (err_side) sign is
+                        # irrelevant. No timeout escape: if the target
+                        # never crosses ahead we keep hovering. Safer than
+                        # ever firing with err_fwd ≤ 0.
+                        err_fwd, _ = self._body_err()
+                        if err_fwd > 0.0:
                             self.get_logger().info(
-                                f'SEARCH gate cleared  d_ground={d_ground:.2f}m  '
-                                f'approaching={approaching}  t={elapsed:.1f}s '
+                                f'SEARCH gate cleared  err_fwd={err_fwd:+.2f}m  '
+                                f'd_ground={d_ground:.2f}m  t={elapsed:.1f}s '
                                 f'→ STABILIZE_HIGH')
                             self._transition(MissionState.STABILIZE_HIGH)
                     else:
@@ -561,9 +630,6 @@ class VisionLandingMission(Node):
                             f'ArUco LOCKED & ground err {d_ground:.2f}m '
                             f'< {self.ground_err_thresh:.2f}m')
                         self._transition(MissionState.DESCEND_TO_LOW)
-                self.prev_d_ground = d_ground
-            else:
-                self.prev_d_ground = None
 
         elif self.state == MissionState.STABILIZE_HIGH:
             # Lock guaranteed (lock-loss check above would have gone to HOLD)
@@ -651,14 +717,12 @@ class VisionLandingMission(Node):
         err_y = ey - dy
         dist = math.hypot(err_x, err_y)
 
-        ff_pitch = t.angular.x / self.MAX_VEL
-        ff_roll  = t.angular.y / self.MAX_VEL
-
-        p_pitch = err_x / self.MAX_VEL
-        p_roll  = err_y / self.MAX_VEL
-
-        pitch_cmd = max(-1.0, min(1.0, ff_pitch + p_pitch))
-        roll_cmd  = max(-1.0, min(1.0, ff_roll  + p_roll))
+        # STATIC blind-landing is a coarse dead-reckon controller: the
+        # target velocity (m/s) is used directly as a feed-forward pitch/
+        # roll command and the position error (m) directly as the P term,
+        # both bounded by the [-1, 1] clamp below.
+        pitch_cmd = max(-1.0, min(1.0, t.angular.x + err_x))
+        roll_cmd  = max(-1.0, min(1.0, t.angular.y + err_y))
 
         if dist < 0.2:
             self.blind_plunge_active = True
@@ -719,13 +783,33 @@ class VisionLandingMission(Node):
         msg.data = json.dumps(payload)
         self.pub_state.publish(msg)
 
+    # ══════════════════════════════════════════════════════════════════
+    #  Abort handler (Ctrl+C)
+    # ══════════════════════════════════════════════════════════════════
+    def request_abort(self):
+        """SIGINT hook. Just flags the abort — _mission_tick (still running,
+        rcl context still alive because we disabled rclpy's signal teardown)
+        commands the land. Restores the default SIGINT handler so a *second*
+        Ctrl+C hard-kills, in case the land/DONE path ever hangs."""
+        if self.abort_requested:
+            return
+        self.abort_requested = True
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+
 
 def main(args=None):
-    rclpy.init(args=args)
+    # Disable rclpy's own SIGINT handling so Ctrl+C does not tear the rcl
+    # context down before the mission can command a land. Our handler just
+    # sets a flag; _mission_tick acts on it while the context is alive.
+    rclpy.init(args=args,
+               signal_handler_options=rclpy.signals.SignalHandlerOptions.NO)
     node = VisionLandingMission()
+    signal.signal(signal.SIGINT, lambda *_: node.request_abort())
     try:
         rclpy.spin(node)
-    except (KeyboardInterrupt, SystemExit, ExternalShutdownException):
+    except (SystemExit, ExternalShutdownException):
+        # SystemExit is raised by the DONE state on normal completion or
+        # after an aborted-mission land — nothing more to do.
         pass
     finally:
         node.destroy_node()

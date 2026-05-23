@@ -56,7 +56,7 @@
     safety:
       check_gcs_timeout: true           # Check for ground control station timeout
       check_position_timeout: false     # Check for position data timeout
-      check_geofence: false              # Check for geofence violations
+      check_geofence: true               # Check for geofence violations
       check_battery: true               # Check battery status
       battery_threshold: 0.05           # Battery threshold for safety (0-1 scale)
       gcs_timeout_threshold: 1.0        # Timeout for ground control station input (seconds)
@@ -64,8 +64,8 @@
       safety_thrust_initial: -0.72      # Initial thrust for safety landing (negative for downward)
       safety_thrust_final: -0.65        # Final thrust for safety landing (negative for downward)
       safety_thrustdown_rate: 0.4       # Rate of thrust decrease during safety landing
-      geofence_radius: 20.0             # Geofence radius (meters)
-      geofence_height: 10.0             # Geofence height (meters)
+      geofence_radius: 15.0             # Geofence radius (meters)
+      geofence_height: 4.0              # Geofence height (meters)
       do_mode_change_delay: false        # Enable mode change delay #! FIX, not for going to manual
       mode_change_delay: 5.0            # Mode change delay (seconds)
 

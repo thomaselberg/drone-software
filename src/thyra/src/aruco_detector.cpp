@@ -1,8 +1,8 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "geometry_msgs/msg/vector3_stamped.hpp"
-#include "std_msgs/msg/float64.hpp"
 #include "interfaces/msg/drone_state.hpp"
+#include "interfaces/msg/servo_command.hpp"
 #include <cv_bridge/cv_bridge.hpp>
 
 #include <opencv2/opencv.hpp>
@@ -19,6 +19,14 @@ public:
         // Parameters
         this->declare_parameter<bool>("show_window", true);
         show_window_ = this->get_parameter("show_window").as_bool();
+
+        // Gimbal servo calibration — must match MissionParams.gimbal_*.
+        // /asr/thyra/in/servo_command carries raw servo values; these
+        // endpoints map a raw value back to the camera pitch.
+        this->declare_parameter<double>("gimbal_down_cmd", -0.95);
+        this->declare_parameter<double>("gimbal_45_cmd",    0.10);
+        gimbal_down_cmd_ = this->get_parameter("gimbal_down_cmd").as_double();
+        gimbal_45_cmd_   = this->get_parameter("gimbal_45_cmd").as_double();
 
         drone_pos_ = {0.0, 0.0, 0.0};
         drone_att_ = {0.0, 0.0, 0.0};
@@ -52,8 +60,11 @@ public:
             "/asr/thyra/out/drone_state", 10,
             std::bind(&ArucoDetectorCpp::drone_cb, this, _1));
 
-        sub_gimbal_ = this->create_subscription<std_msgs::msg::Float64>(
-            "/gimbal/cmd_pitch", 10,
+        // Same raw-servo topic the mission and the GUI slider publish to.
+        // BEST_EFFORT QoS accepts both the GUI's BEST_EFFORT publisher and
+        // the mission's default-RELIABLE publisher.
+        sub_gimbal_ = this->create_subscription<interfaces::msg::ServoCommand>(
+            "/asr/thyra/in/servo_command", rclcpp::SensorDataQoS(),
             std::bind(&ArucoDetectorCpp::gimbal_cb, this, _1));
 
         RCLCPP_INFO(this->get_logger(),
@@ -67,6 +78,7 @@ private:
     std::vector<double> drone_att_;
     double mount_pitch_;
     double gimbal_pitch_;
+    double gimbal_down_cmd_, gimbal_45_cmd_;
     double w_, h_, f_px_;
 
     cv::Ptr<cv::aruco::Dictionary> aruco_dict_;
@@ -76,7 +88,7 @@ private:
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_annotated_;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr sub_image_;
     rclcpp::Subscription<interfaces::msg::DroneState>::SharedPtr sub_drone_;
-    rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr sub_gimbal_;
+    rclcpp::Subscription<interfaces::msg::ServoCommand>::SharedPtr sub_gimbal_;
 
     void drone_cb(const interfaces::msg::DroneState::SharedPtr msg) {
         if (msg->position.size() >= 3) {
@@ -91,8 +103,13 @@ private:
         }
     }
 
-    void gimbal_cb(const std_msgs::msg::Float64::SharedPtr msg) {
-        gimbal_pitch_ = (msg->data + 1.0) * (M_PI / 4.0);
+    void gimbal_cb(const interfaces::msg::ServoCommand::SharedPtr msg) {
+        // Raw servo command (GUI slider or mission). Map it to camera pitch
+        // via the measured endpoints: gimbal_down_cmd -> straight down (0 rad),
+        // gimbal_45_cmd -> 45 deg (pi/4). Gimbal is AUX1 (aux_index 0).
+        if (msg->aux_index != 0) return;
+        double span = gimbal_45_cmd_ - gimbal_down_cmd_;
+        gimbal_pitch_ = (M_PI / 4.0) * (msg->value - gimbal_down_cmd_) / span;
     }
 
     cv::Mat rot(double r, double p, double y) {

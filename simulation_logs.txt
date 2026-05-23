@@ -1,61 +1,42 @@
 [0;34m═══════════════════════════════════════════════════[0m
 [0;36m   FAIR COMPARISON SIMULATION                     [0m
-[0;36m   Mode: [0;32mGIMBAL[0;36m   Scenario: [0;32mDYNAMIC[0;36m   Wind: [0;32mstrong[0m
-[0;36m   Target Spawn: [0;32m-1.0m[0m
+[0;36m   Mode: [0;32mGIMBAL[0;36m   Scenario: [0;32mSTATIC[0m
+[0;36m   Target Spawn: [0;32m10.0m[0m
 [0;34m═══════════════════════════════════════════════════[0m
 [1;33m>>> Cleaning up previous sessions...[0m
 [1;33m>>> QGroundControl already running — skipping[0m
-[0;34m>>> [1/5] Launching official team simulation...[0m
-[0;34m>>> [2/5] Launching synthetic camera...[0m
-[0;34m>>> [3/5] Launching ArUco detector (C++)...[0m
-[0;34m>>> [4/5] Launching wind gust generator (strong)...[0m
+[0;34m>>> [1/4] Launching official team simulation...[0m
+[0;34m>>> [2/4] Launching synthetic camera...[0m
+[0;34m>>> [3/4] Launching ArUco detector (C++)...[0m
 [1;33m>>> Waiting for THYRA OPERATIONAL...[0m
-[INFO] [launch]: All log files can be found below /home/elberg/.ros/log/2026-05-16-16-35-07-381475-space-159546
+[INFO] [launch]: All log files can be found below /home/elberg/.ros/log/2026-05-22-12-24-46-484564-space-9663
 [INFO] [launch]: Default logging verbosity is set to INFO
-[INFO] [1778942107.390927793] [aruco_detector]: C++ ArUco detector started  show_window=true
-[INFO] [bash-1]: process started with pid [159582]
-[INFO] [MicroXRCEAgent-2]: process started with pid [159583]
+[INFO] [1779445486.494314986] [aruco_detector]: C++ ArUco detector started  show_window=true
+[INFO] [bash-1]: process started with pid [9693]
+[INFO] [MicroXRCEAgent-2]: process started with pid [9694]
 [bash-1] bash: -c: option requires an argument
 [bash-1] Trying to cd into: /home/elberg/PX4-Autopilot_thyra
 [bash-1] Now in: /home/elberg/PX4-Autopilot_thyra
 [bash-1] Now running PX4 SITL with Gazebo X500 world
-[INFO] [1778942107.517401249] [wind_gust_generator]: Wind scenario: strong  baseline=10.0m/s @ 270°  (30 gusts / 60s, looping)
-[INFO] [1778942107.651702479] [synthetic_cam]: Synthetic Camera started (0.6m marker, scenario=MOVING)
-[INFO] [1778942108.518748769] [wind_gust_generator]: WIND 10.0m/s @ 270°  (baseline + 1 gust)
-[INFO] [1778942109.518815687] [wind_gust_generator]: WIND 14.5m/s @ 277°  (baseline + 1 gust)
-[INFO] [1778942110.618781263] [wind_gust_generator]: WIND 12.7m/s @ 276°  (baseline + 2 gusts)
-[INFO] [1778942111.619105160] [wind_gust_generator]: WIND 14.0m/s @ 284°  (baseline + 1 gust)
-[INFO] [1778942112.718906265] [wind_gust_generator]: WIND 12.6m/s @ 275°  (baseline + 2 gusts)
-[INFO] [1778942113.818879796] [wind_gust_generator]: WIND 14.9m/s @ 267°  (baseline + 1 gust)
-[INFO] [1778942114.818952650] [wind_gust_generator]: WIND 13.1m/s @ 269°  (baseline + 2 gusts)
-[INFO] [1778942115.918778962] [wind_gust_generator]: WIND 14.9m/s @ 271°  (baseline + 1 gust)
-[INFO] [1778942116.918914880] [wind_gust_generator]: WIND 11.8m/s @ 259°  (baseline + 2 gusts)
-[INFO] [1778942118.018978479] [wind_gust_generator]: WIND 12.6m/s @ 250°  (baseline + 1 gust)
-[INFO] [1778942119.119135908] [wind_gust_generator]: WIND 12.6m/s @ 281°  (baseline + 1 gust)
-[INFO] [1778942120.218837756] [wind_gust_generator]: WIND 13.3m/s @ 283°  (baseline + 1 gust)
-[INFO] [1778942121.218865450] [wind_gust_generator]: WIND 13.8m/s @ 274°  (baseline + 1 gust)
-[INFO] [1778942122.218892265] [wind_gust_generator]: WIND 14.1m/s @ 274°  (baseline + 1 gust)
-[INFO] [1778942123.318924455] [wind_gust_generator]: WIND 14.1m/s @ 276°  (baseline + 1 gust)
-[INFO] [1778942124.318975350] [wind_gust_generator]: WIND 13.7m/s @ 275°  (baseline + 1 gust)
-[INFO] [1778942125.418849170] [wind_gust_generator]: WIND 14.3m/s @ 263°  (baseline + 1 gust)
-[INFO] [1778942126.418872240] [wind_gust_generator]: WIND 13.2m/s @ 264°  (baseline + 1 gust)
-[INFO] [asr_autopilot-3]: process started with pid [160389]
+[INFO] [1779445486.743765905] [synthetic_cam]: Synthetic Camera started (0.3m marker, scenario=STATIC)
+QSocketNotifier: Can only be used with threads started with QThread
+[INFO] [asr_autopilot-3]: process started with pid [10521]
 [asr_autopilot-3] 
 [asr_autopilot-3] =============================
 [asr_autopilot-3]     * THYRA STARTING... *
 [asr_autopilot-3] =============================
 [asr_autopilot-3] 
-[asr_autopilot-3] [INFO] [1778942127.444207610] [asr.thyra.autopilot]: Using simulation time source
-[asr_autopilot-3] [INFO] [1778942127.444299803] [asr.thyra.autopilot]: Using px4 position source
-[asr_autopilot-3] [INFO] [1778942127.444353839] [asr.thyra.autopilot]: pitch PID gains: Kp=0.15, Ki=0.01, Kd=0.00
-[asr_autopilot-3] [INFO] [1778942127.444408269] [asr.thyra.autopilot]: roll PID gains: Kp=0.15, Ki=0.01, Kd=0.00
-[asr_autopilot-3] [INFO] [1778942127.444459946] [asr.thyra.autopilot]: yaw PID gains: Kp=0.15, Ki=0.00, Kd=0.05
-[asr_autopilot-3] [INFO] [1778942127.444505955] [asr.thyra.autopilot]: thrust PID gains: Kp=0.50, Ki=0.10, Kd=0.01
-[asr_autopilot-3] [INFO] [1778942127.444555347] [asr.thyra.autopilot]: Position X PID gains: Kp=1.00, Ki=0.00, Kd=0.01
-[asr_autopilot-3] [INFO] [1778942127.444602738] [asr.thyra.autopilot]: Position Y PID gains: Kp=1.00, Ki=0.00, Kd=0.01
-[asr_autopilot-3] [INFO] [1778942127.444652649] [asr.thyra.autopilot]: Position Z PID gains: Kp=1.00, Ki=0.00, Kd=0.01
-[asr_autopilot-3] [INFO] [1778942127.444674731] [asr.thyra.autopilot]: Controller EMA filter alpha: 0.15
-[asr_autopilot-3] [INFO] [1778942127.444773146] [asr.thyra.autopilot]: Motion constraints (path planner & controller):
+[asr_autopilot-3] [INFO] [1779445506.542655742] [asr.thyra.autopilot]: Using simulation time source
+[asr_autopilot-3] [INFO] [1779445506.542699521] [asr.thyra.autopilot]: Using px4 position source
+[asr_autopilot-3] [INFO] [1779445506.542719170] [asr.thyra.autopilot]: pitch PID gains: Kp=0.15, Ki=0.01, Kd=0.00
+[asr_autopilot-3] [INFO] [1779445506.542740570] [asr.thyra.autopilot]: roll PID gains: Kp=0.15, Ki=0.01, Kd=0.00
+[asr_autopilot-3] [INFO] [1779445506.542760918] [asr.thyra.autopilot]: yaw PID gains: Kp=0.15, Ki=0.00, Kd=0.05
+[asr_autopilot-3] [INFO] [1779445506.542778171] [asr.thyra.autopilot]: thrust PID gains: Kp=0.50, Ki=0.10, Kd=0.01
+[asr_autopilot-3] [INFO] [1779445506.542796481] [asr.thyra.autopilot]: Position X PID gains: Kp=1.00, Ki=0.00, Kd=0.01
+[asr_autopilot-3] [INFO] [1779445506.542812477] [asr.thyra.autopilot]: Position Y PID gains: Kp=1.00, Ki=0.00, Kd=0.01
+[asr_autopilot-3] [INFO] [1779445506.542829262] [asr.thyra.autopilot]: Position Z PID gains: Kp=1.00, Ki=0.00, Kd=0.01
+[asr_autopilot-3] [INFO] [1779445506.542836786] [asr.thyra.autopilot]: Controller EMA filter alpha: 0.15
+[asr_autopilot-3] [INFO] [1779445506.542871570] [asr.thyra.autopilot]: Motion constraints (path planner & controller):
 [asr_autopilot-3]   min_linear_velocity     = 0.10 m/s
 [asr_autopilot-3]   min_angular_velocity    = 0.10 rad/s
 [asr_autopilot-3]   max_linear_velocity     = 1.50 m/s
@@ -63,10 +44,10 @@
 [asr_autopilot-3]   max_tilt_angle          = 20.0 degrees (0.349 rad)
 [asr_autopilot-3]   default_linear_velocity = 0.40 m/s
 [asr_autopilot-3]   default_angular_velocity= 0.50 rad/s
-[asr_autopilot-3] [INFO] [1778942127.444789062] [asr.thyra.autopilot]: Controller velocity saturation:
+[asr_autopilot-3] [INFO] [1779445506.542879673] [asr.thyra.autopilot]: Controller velocity saturation:
 [asr_autopilot-3]   max_horizontal_velocity = 1.50 m/s
 [asr_autopilot-3]   max_vertical_velocity   = 1.50 m/s
-[asr_autopilot-3] [INFO] [1778942127.444975192] [asr.thyra.autopilot]: Safety parameters:
+[asr_autopilot-3] [INFO] [1779445506.542958157] [asr.thyra.autopilot]: Safety parameters:
 [asr_autopilot-3]   gcs_timeout            = 1.00 s
 [asr_autopilot-3]   position_timeout       = 0.20 s
 [asr_autopilot-3]   safety_thrust_initial  = -0.72
@@ -79,112 +60,86 @@
 [asr_autopilot-3]   geofence_height        = 50.00 m
 [asr_autopilot-3]   do_mode_change_delay   = false
 [asr_autopilot-3]   mode_change_delay      = 0.00 s
-[asr_autopilot-3] [INFO] [1778942127.445043174] [asr.thyra.autopilot]: Lidar offset: 0.18
-[asr_autopilot-3] [INFO] [1778942127.445050729] [asr.thyra.autopilot]: Takeoff height: -1.50
-[asr_autopilot-3] [INFO] [1778942127.445056372] [asr.thyra.autopilot]: Motor speed min: 0.00
-[asr_autopilot-3] [INFO] [1778942127.445061809] [asr.thyra.autopilot]: Motor speed max: 1000.00
-[asr_autopilot-3] [INFO] [1778942127.445094573] [asr.thyra.autopilot]: Hover thrust estimate: -0.700
-[asr_autopilot-3] [INFO] [1778942127.445104981] [asr.thyra.autopilot]: Hover thrust learning rate: 0.000100
+[asr_autopilot-3] [INFO] [1779445506.542985256] [asr.thyra.autopilot]: Lidar offset: 0.18
+[asr_autopilot-3] [INFO] [1779445506.542987597] [asr.thyra.autopilot]: Takeoff height: -1.50
+[asr_autopilot-3] [INFO] [1779445506.542989538] [asr.thyra.autopilot]: Motor speed min: 0.00
+[asr_autopilot-3] [INFO] [1779445506.542991311] [asr.thyra.autopilot]: Motor speed max: 1000.00
+[asr_autopilot-3] [INFO] [1779445506.543003991] [asr.thyra.autopilot]: Hover thrust estimate: -0.700
+[asr_autopilot-3] [INFO] [1779445506.543007280] [asr.thyra.autopilot]: Hover thrust learning rate: 0.000100
 [asr_autopilot-3] 
 [asr_autopilot-3] =============================
 [asr_autopilot-3]     * THYRA OPERATIONAL *
 [asr_autopilot-3] =============================
 [asr_autopilot-3] 
-[INFO] [1778942127.518866172] [wind_gust_generator]: WIND 13.4m/s @ 253°  (baseline + 1 gust)
 [0;32m>>> Autopilot Ready![0m
-[0;34m>>> [5a/5] Launching KPI logger (sim)...[0m
-[0;32m>>> [5b/5] Launching vision_landing_mission (GIMBAL, DYNAMIC, strong)...[0m
+[0;34m>>> [4a/4] Launching KPI logger (sim)...[0m
+[0;32m>>> [4b/4] Launching vision_landing_mission (GIMBAL, STATIC)...[0m
 
 [0;32m╔═══════════════════════════════════════════════╗[0m
 [0;32m║  All nodes launched. Press Ctrl+C to stop.   ║[0m
 [0;32m║  Results → ~/drone-software/results/          ║[0m
 [0;32m╚═══════════════════════════════════════════════╝[0m
-[INFO] [1778942128.618804039] [wind_gust_generator]: WIND 11.9m/s @ 263°  (baseline + 2 gusts)
-[INFO] [1778942128.677032335] [kpi_logger_sim]: KPI logger (sim) started  mode=gimbal  scenario=dynamic  wind=strong  out=/home/elberg/drone-software/results
-[INFO] [1778942128.757153920] [vision_landing_mission]: VisionLandingMission started  mode=GIMBAL  scenario=DYNAMIC  takeoff_alt=3.00m
-[INFO] [1778942129.618805696] [wind_gust_generator]: WIND 13.8m/s @ 285°  (baseline + 1 gust)
-[INFO] [1778942130.618919606] [wind_gust_generator]: WIND 12.4m/s @ 278°  (baseline + 2 gusts)
-[INFO] [1778942131.718843880] [wind_gust_generator]: WIND 15.0m/s @ 270°  (baseline + 1 gust)
-[INFO] [1778942132.818838622] [wind_gust_generator]: WIND 12.7m/s @ 276°  (baseline + 2 gusts)
-[INFO] [1778942133.740712872] [vision_landing_mission]: CMD → arm  pose=None
-[INFO] [1778942133.741265907] [vision_landing_mission]: STATE: IDLE → ARMING
-[asr_autopilot-3] [INFO] [1778942133.741168485] [asr.thyra.autopilot]: Received goal request with command_type: arm
-[asr_autopilot-3] [INFO] [1778942133.741591089] [asr.thyra.autopilot]: Sending arm command...
-[asr_autopilot-3] [INFO] [1778942133.741685265] [asr.thyra.autopilot]: Goal execution completed.
-[INFO] [1778942133.790682212] [vision_landing_mission]: Armed → Takeoff
-[INFO] [1778942133.790925899] [vision_landing_mission]: CMD → takeoff  pose=[-3.0]
-[INFO] [1778942133.791263137] [vision_landing_mission]: STATE: ARMING → TAKEOFF
-[asr_autopilot-3] [INFO] [1778942133.791248916] [asr.thyra.autopilot]: Received goal request with command_type: takeoff
-[asr_autopilot-3] [INFO] [1778942133.791393825] [asr.thyra.autopilot]: Control mode updated to: 2
-[asr_autopilot-3] [INFO] [1778942133.791429294] [asr.thyra.autopilot]: Control loop started with mode: 2
-[asr_autopilot-3] Takeoff target: -0.00899742   0.0165198          -3
-[asr_autopilot-3] [INFO] [1778942133.791795720] [asr.thyra.autopilot]: Goal execution completed.
-[INFO] [1778942133.818879453] [wind_gust_generator]: WIND 14.1m/s @ 284°  (baseline + 1 gust)
-[INFO] [1778942134.819039120] [wind_gust_generator]: WIND 12.1m/s @ 267°  (baseline + 2 gusts)
-[INFO] [1778942135.918966238] [wind_gust_generator]: WIND 13.6m/s @ 253°  (baseline + 1 gust)
-[INFO] [1778942136.919131366] [wind_gust_generator]: WIND 12.7m/s @ 263°  (baseline + 2 gusts)
-[INFO] [1778942138.018845538] [wind_gust_generator]: WIND 14.5m/s @ 262°  (baseline + 1 gust)
-[INFO] [1778942138.879035094] [synthetic_cam]: TARGET TRIGGERED: Drone crossed 2.0m (alt=2.00m)
-[INFO] [1778942139.018881558] [wind_gust_generator]: WIND 12.7m/s @ 276°  (baseline + 1 gust)
-[INFO] [1778942139.840685860] [vision_landing_mission]: Alt 2.51m reached → SEARCH
-[INFO] [1778942139.840851166] [vision_landing_mission]: CMD → manual_aided  pose=None
-[asr_autopilot-3] [INFO] [1778942139.841033545] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
-[asr_autopilot-3] [INFO] [1778942139.841160428] [asr.thyra.autopilot]: Control mode updated to: 1
-[asr_autopilot-3] [INFO] [1778942139.841243092] [asr.thyra.autopilot]: Goal execution completed.
-[INFO] [1778942139.841403710] [vision_landing_mission]: STATE: TAKEOFF → SEARCH
-[INFO] [1778942140.118973990] [wind_gust_generator]: WIND 14.2m/s @ 278°  (baseline + 1 gust)
-[INFO] [1778942141.219012332] [wind_gust_generator]: WIND 13.8m/s @ 273°  (baseline + 1 gust)
-[INFO] [1778942142.319021492] [wind_gust_generator]: WIND 13.8m/s @ 273°  (baseline + 1 gust)
-[INFO] [1778942143.419058345] [wind_gust_generator]: WIND 13.6m/s @ 284°  (baseline + 1 gust)
-[INFO] [1778942144.518948102] [wind_gust_generator]: WIND 12.2m/s @ 280°  (baseline + 2 gusts)
-[INFO] [1778942144.986675569] [vision_landing_mission]: FIRST VISUAL LOCK acquired
-[INFO] [1778942145.041117128] [kpi_logger_sim]: First lock detected → recording
-[INFO] [1778942145.618865134] [wind_gust_generator]: WIND 12.6m/s @ 249°  (baseline + 1 gust)
-[INFO] [1778942146.718941759] [wind_gust_generator]: WIND 12.0m/s @ 262°  (baseline + 2 gusts)
-[INFO] [1778942147.640828524] [vision_landing_mission]: SEARCH gate cleared  d_ground=0.91m  approaching=False  t=7.8s → STABILIZE_HIGH
-[INFO] [1778942147.640989628] [vision_landing_mission]: STATE: SEARCH → STABILIZE_HIGH
-[INFO] [1778942147.690734141] [vision_landing_mission]: Ground err 0.88m < 1.00m — STABILIZE_HIGH dwell started (0.5s)
-[INFO] [1778942147.818976533] [wind_gust_generator]: WIND 15.0m/s @ 271°  (baseline + 1 gust)
-[INFO] [1778942148.190819537] [vision_landing_mission]: STABILIZE_HIGH dwell complete (0.50s) → DESCEND_TO_LOW
-[INFO] [1778942148.190977635] [vision_landing_mission]: STATE: STABILIZE_HIGH → DESCEND_TO_LOW
-[INFO] [1778942148.918914767] [wind_gust_generator]: WIND 13.0m/s @ 269°  (baseline + 2 gusts)
-[INFO] [1778942150.018852927] [wind_gust_generator]: WIND 14.7m/s @ 269°  (baseline + 1 gust)
-[INFO] [1778942150.340767667] [vision_landing_mission]: Alt 1.79m → STABILIZE_LOW
-[INFO] [1778942150.340927577] [vision_landing_mission]: STATE: DESCEND_TO_LOW → STABILIZE_LOW
-[INFO] [1778942150.891166697] [vision_landing_mission]: Stable at low alt → TERMINAL_LAND
-[INFO] [1778942150.891399276] [vision_landing_mission]: STATE: STABILIZE_LOW → TERMINAL_LAND
-[INFO] [1778942151.019119905] [wind_gust_generator]: WIND 12.4m/s @ 279°  (baseline + 1 gust)
-[INFO] [1778942152.118973787] [wind_gust_generator]: WIND 13.8m/s @ 282°  (baseline + 1 gust)
-[INFO] [1778942153.218815552] [wind_gust_generator]: WIND 13.6m/s @ 277°  (baseline + 1 gust)
-[INFO] [1778942154.218839621] [wind_gust_generator]: WIND 14.0m/s @ 277°  (baseline + 1 gust)
-[INFO] [1778942155.219108208] [wind_gust_generator]: WIND 12.3m/s @ 254°  (baseline + 1 gust)
-[INFO] [1778942156.319007962] [wind_gust_generator]: WIND 12.3m/s @ 254°  (baseline + 1 gust)
-[INFO] [1778942157.418799698] [wind_gust_generator]: WIND 14.5m/s @ 272°  (baseline + 1 gust)
-[WARN] [1778942158.040684675] [vision_landing_mission]: TERMINAL_LAND lock lost at alt=0.57m — coasting descent at 0.50m/s
-[INFO] [1778942158.390487860] [vision_landing_mission]: TERMINAL_LAND coast: alt 0.40m < 0.40m → land (PX4 takes over)
-[INFO] [1778942158.390675566] [vision_landing_mission]: CMD → land  pose=None
-[INFO] [1778942158.390957866] [vision_landing_mission]: STATE: TERMINAL_LAND → DONE
-[asr_autopilot-3] [INFO] [1778942158.390911252] [asr.thyra.autopilot]: Received goal request with command_type: land
-[asr_autopilot-3] [INFO] [1778942158.391092535] [asr.thyra.autopilot]: Control mode updated to: 2
-[asr_autopilot-3] [INFO] [1778942158.391126264] [asr.thyra.autopilot]: Position based land mode activated.
-[asr_autopilot-3] [INFO] [1778942158.391577511] [asr.thyra.autopilot]: Goal execution completed.
-[INFO] [1778942158.419087760] [wind_gust_generator]: WIND 13.4m/s @ 272°  (baseline + 1 gust)
-[INFO] [1778942158.441792609] [kpi_logger_sim]: KPI saved → /home/elberg/drone-software/results/gimbal_dynamic_strong_163558.csv
-  Distance Error : 0.1454 m
-  Rotation Error : 7.70°
-  Engagement Time: 13.45 s
-  Rows           : 135
-[asr_autopilot-3] [INFO] [1778942159.401502073] [asr.thyra.autopilot]: Drone has landed, disarming...
-[asr_autopilot-3] [INFO] [1778942159.401607196] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
-[asr_autopilot-3] [INFO] [1778942159.401619270] [asr.thyra.autopilot]: Control loop stopped.
-[INFO] [1778942159.518884088] [wind_gust_generator]: WIND 14.5m/s @ 263°  (baseline + 1 gust)
-[INFO] [1778942160.440955313] [vision_landing_mission]: Mission complete — shutting down node
-[INFO] [1778942160.519122409] [wind_gust_generator]: WIND 12.8m/s @ 265°  (baseline + 2 gusts)
-[INFO] [1778942161.618803229] [wind_gust_generator]: WIND 12.8m/s @ 291°  (baseline + 1 gust)
-[INFO] [1778942162.719056444] [wind_gust_generator]: WIND 12.1m/s @ 277°  (baseline + 2 gusts)
-[INFO] [1778942163.818824010] [wind_gust_generator]: WIND 15.0m/s @ 268°  (baseline + 1 gust)
-[INFO] [1778942164.818835384] [wind_gust_generator]: WIND 12.8m/s @ 265°  (baseline + 2 gusts)
-[INFO] [1778942165.818854486] [wind_gust_generator]: WIND 14.4m/s @ 259°  (baseline + 1 gust)
-[INFO] [1778942166.918975607] [wind_gust_generator]: WIND 12.9m/s @ 267°  (baseline + 2 gusts)
-[INFO] [1778942168.518792927] [wind_gust_generator]: WIND 10.0m/s @ 270°  (baseline + 1 gust)
-[INFO] [1778942169.518811325] [wind_gust_generator]: WIND 14.5m/s @ 277°  (baseline + 1 gust)
+[INFO] [1779445507.767389715] [kpi_logger_sim]: KPI logger (sim) started  mode=gimbal  scenario=static  out=/home/elberg/drone-software/results
+[INFO] [1779445507.844552130] [vision_landing_mission]: VisionLandingMission started  mode=GIMBAL  scenario=STATIC  takeoff_alt=3.00m
+[INFO] [1779445512.827699535] [vision_landing_mission]: CMD → arm  pose=None
+[INFO] [1779445512.828083730] [vision_landing_mission]: STATE: IDLE → ARMING
+[asr_autopilot-3] [INFO] [1779445512.828012721] [asr.thyra.autopilot]: Received goal request with command_type: arm
+[asr_autopilot-3] [INFO] [1779445512.828315516] [asr.thyra.autopilot]: Sending arm command...
+[asr_autopilot-3] [INFO] [1779445512.828367651] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1779445512.877542482] [vision_landing_mission]: Armed → Takeoff
+[INFO] [1779445512.877719618] [vision_landing_mission]: CMD → takeoff  pose=[-3.0]
+[INFO] [1779445512.878019608] [vision_landing_mission]: STATE: ARMING → TAKEOFF
+[asr_autopilot-3] [INFO] [1779445512.878007988] [asr.thyra.autopilot]: Received goal request with command_type: takeoff
+[asr_autopilot-3] [INFO] [1779445512.878135300] [asr.thyra.autopilot]: Control mode updated to: 2
+[asr_autopilot-3] [INFO] [1779445512.878233433] [asr.thyra.autopilot]: Control loop started with mode: 2
+[asr_autopilot-3] Takeoff target: -0.0277238   0.014555         -3
+[asr_autopilot-3] [INFO] [1779445512.878733713] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1779445518.927724032] [vision_landing_mission]: Alt 2.50m reached → SEARCH
+[INFO] [1779445518.927900978] [vision_landing_mission]: CMD → manual_aided  pose=None
+[INFO] [1779445518.928273994] [vision_landing_mission]: STATE: TAKEOFF → SEARCH
+[asr_autopilot-3] [INFO] [1779445518.928071449] [asr.thyra.autopilot]: Received goal request with command_type: manual_aided
+[asr_autopilot-3] [INFO] [1779445518.928228544] [asr.thyra.autopilot]: Control mode updated to: 1
+[asr_autopilot-3] [INFO] [1779445518.928312569] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1779445525.944375829] [vision_landing_mission]: FIRST VISUAL LOCK acquired
+[INFO] [1779445525.977626870] [vision_landing_mission]: ArUco LOCKED & ground err 0.90m < 1.00m
+[INFO] [1779445525.977812085] [vision_landing_mission]: STATE: SEARCH → DESCEND_TO_LOW
+[INFO] [1779445526.027861505] [kpi_logger_sim]: First lock detected → recording
+[INFO] [1779445526.127455202] [vision_landing_mission]: STATE: DESCEND_TO_LOW → HOLD
+[WARN] [1779445526.127682057] [vision_landing_mission]: LOCK LOST in DESCEND_TO_LOW at alt=2.82m → HOLD (hover 2s, then descend)
+[INFO] [1779445526.227537460] [vision_landing_mission]: LOCK RECOVERED → resuming DESCEND_TO_LOW
+[INFO] [1779445526.227736599] [vision_landing_mission]: STATE: HOLD → DESCEND_TO_LOW
+[INFO] [1779445526.277463168] [vision_landing_mission]: STATE: DESCEND_TO_LOW → HOLD
+[WARN] [1779445526.277721224] [vision_landing_mission]: LOCK LOST in DESCEND_TO_LOW at alt=2.77m → HOLD (hover 2s, then descend)
+[INFO] [1779445526.327663672] [vision_landing_mission]: LOCK RECOVERED → resuming DESCEND_TO_LOW
+[INFO] [1779445526.327810193] [vision_landing_mission]: STATE: HOLD → DESCEND_TO_LOW
+[INFO] [1779445526.377484539] [vision_landing_mission]: STATE: DESCEND_TO_LOW → HOLD
+[WARN] [1779445526.377738011] [vision_landing_mission]: LOCK LOST in DESCEND_TO_LOW at alt=2.76m → HOLD (hover 2s, then descend)
+[INFO] [1779445526.427734401] [vision_landing_mission]: LOCK RECOVERED → resuming DESCEND_TO_LOW
+[INFO] [1779445526.428034636] [vision_landing_mission]: STATE: HOLD → DESCEND_TO_LOW
+[INFO] [1779445526.927527054] [vision_landing_mission]: STATE: DESCEND_TO_LOW → HOLD
+[WARN] [1779445526.927741198] [vision_landing_mission]: LOCK LOST in DESCEND_TO_LOW at alt=2.58m → HOLD (hover 2s, then descend)
+[INFO] [1779445527.027519540] [vision_landing_mission]: LOCK RECOVERED → resuming DESCEND_TO_LOW
+[INFO] [1779445527.027695676] [vision_landing_mission]: STATE: HOLD → DESCEND_TO_LOW
+[INFO] [1779445528.527747795] [vision_landing_mission]: Alt 1.80m → STABILIZE_LOW
+[INFO] [1779445528.527899402] [vision_landing_mission]: STATE: DESCEND_TO_LOW → STABILIZE_LOW
+[INFO] [1779445529.077809132] [vision_landing_mission]: Stable at low alt → TERMINAL_LAND
+[INFO] [1779445529.077964621] [vision_landing_mission]: STATE: STABILIZE_LOW → TERMINAL_LAND
+[WARN] [1779445530.027618881] [vision_landing_mission]: TERMINAL_LAND lock lost at alt=1.71m — coasting descent at 0.50m/s
+[INFO] [1779445530.227541681] [vision_landing_mission]: TERMINAL_LAND lock recovered → resume tracking
+[WARN] [1779445536.527784835] [vision_landing_mission]: TERMINAL_LAND lock lost at alt=0.40m — coasting descent at 0.50m/s
+[INFO] [1779445536.577461698] [vision_landing_mission]: TERMINAL_LAND coast: alt 0.38m < 0.40m → land (PX4 takes over)
+[INFO] [1779445536.577669622] [vision_landing_mission]: CMD → land  pose=None
+[INFO] [1779445536.578000113] [vision_landing_mission]: STATE: TERMINAL_LAND → DONE
+[asr_autopilot-3] [INFO] [1779445536.577948604] [asr.thyra.autopilot]: Received goal request with command_type: land
+[asr_autopilot-3] [INFO] [1779445536.578147130] [asr.thyra.autopilot]: Control mode updated to: 2
+[asr_autopilot-3] [INFO] [1779445536.578201379] [asr.thyra.autopilot]: Position based land mode activated.
+[asr_autopilot-3] [INFO] [1779445536.578656346] [asr.thyra.autopilot]: Goal execution completed.
+[INFO] [1779445536.628336929] [kpi_logger_sim]: KPI saved → /home/elberg/drone-software/results/gimbal_static_122536.csv
+  Distance Error : 0.0145 m
+  Rotation Error : 0.14°
+  Engagement Time: 10.68 s
+  Rows           : 107
+[asr_autopilot-3] [INFO] [1779445537.548378441] [asr.thyra.autopilot]: Drone has landed, disarming...
+[asr_autopilot-3] [INFO] [1779445537.548523753] [asr.thyra.autopilot]: Sending disarm command (kill=1)...
+[asr_autopilot-3] [INFO] [1779445537.548536947] [asr.thyra.autopilot]: Control loop stopped.
+[INFO] [1779445538.627888658] [vision_landing_mission]: Mission complete — shutting down node

@@ -20,10 +20,10 @@ MOVING velocity model:
            (π/7, √2/3, e/11), weighted 50/30/20 %, scaled by vel_scale.
            Clamped to ±0.25 × forward velocity (max ~14° turns).
 
-Gimbal convention (matches real hardware):
-  -1.0 = Straight Down  (0   rad in _rot pitch)
-   0.0 = 45° Slant      (π/4 rad in _rot pitch)
-  +1.0 = Horizon        (π/2 rad in _rot pitch)
+Gimbal: subscribes to the raw-servo topic /asr/thyra/in/servo_command
+(same topic the mission and the GUI slider publish to) and maps the raw
+servo value to camera pitch via the measured calibration endpoints —
+gimbal_down_cmd → straight down (0 rad), gimbal_45_cmd → 45° (π/4 rad).
 
 The camera is rendered from drone_pos + R_drone @ [cam_offset_x, 0, 0],
 so body pitch/roll/yaw shift the camera viewpoint just like the real
@@ -36,8 +36,7 @@ from rclpy.qos import qos_profile_sensor_data
 from rclpy.executors import ExternalShutdownException
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import TwistStamped
-from std_msgs.msg import Float64
-from interfaces.msg import DroneState
+from interfaces.msg import DroneState, ServoCommand
 from cv_bridge import CvBridge
 import cv2
 import numpy as np
@@ -84,11 +83,18 @@ class SyntheticCam(Node):
         self.declare_parameter('hfov_deg', 85.0)
         self.declare_parameter('scenario', 'MOVING')  # STATIC, MOVING, or MOVING_EASY
         self.declare_parameter('cam_offset_x', 0.15)  # camera fwd of drone center [m]
+        # Gimbal servo calibration — must match MissionParams.gimbal_*.
+        # The /asr/thyra/in/servo_command topic carries raw servo values;
+        # these endpoints map a raw value to the camera pitch.
+        self.declare_parameter('gimbal_down_cmd', -0.95)  # raw servo → straight down
+        self.declare_parameter('gimbal_45_cmd',    0.10)  # raw servo → 45° slant
 
         self.scenario = self.get_parameter('scenario').value.upper()
         self.target_x = self.get_parameter('target_start_x').value
         self.target_y = self.get_parameter('target_start_y').value
-        self.cam_offset_x = self.get_parameter('cam_offset_x').value
+        self.cam_offset_x    = self.get_parameter('cam_offset_x').value
+        self.gimbal_down_cmd = self.get_parameter('gimbal_down_cmd').value
+        self.gimbal_45_cmd   = self.get_parameter('gimbal_45_cmd').value
 
         self.whiteout_interval = self.get_parameter('whiteout_interval_s').value
         self.whiteout_duration = self.get_parameter('whiteout_duration_s').value
@@ -119,7 +125,12 @@ class SyntheticCam(Node):
         self.pub_img = self.create_publisher(Image, '/camera/camera/color/image_raw', 1)
         self.pub_truth = self.create_publisher(TwistStamped, '/asr/sim/true_target_state', 1)
         self.create_subscription(DroneState, '/asr/thyra/out/drone_state', self._drone_cb, 10)
-        self.create_subscription(Float64, '/gimbal/cmd_pitch', self._gimbal_cb, 10)
+        # Same raw-servo topic the mission and the GUI slider publish to.
+        # BEST_EFFORT QoS accepts both the GUI's BEST_EFFORT publisher and
+        # the mission's default-RELIABLE publisher.
+        self.create_subscription(
+            ServoCommand, '/asr/thyra/in/servo_command',
+            self._gimbal_cb, qos_profile_sensor_data)
 
         self.timer = self.create_timer(1.0/30.0, self._tick)
         self.get_logger().info(
@@ -130,9 +141,15 @@ class SyntheticCam(Node):
         self.att = list(msg.orientation)
         self.drone_state_received = True
 
-    def _gimbal_cb(self, msg: Float64):
-        # -1.0 = Straight Down (0 rad), 0.0 = 45° (π/4), +1.0 = Horizon (π/2)
-        self.gimbal_pitch_override = (msg.data + 1.0) * (math.pi / 4.0)
+    def _gimbal_cb(self, msg: ServoCommand):
+        # Raw servo command (GUI slider or mission). Map it to camera pitch
+        # via the measured endpoints: gimbal_down_cmd → straight down (0 rad),
+        # gimbal_45_cmd → 45° (π/4). A raw value beyond gimbal_down_cmd maps
+        # to a slightly-backward tilt (negative pitch). Gimbal is AUX1.
+        if msg.aux_index != 0:
+            return
+        span = self.gimbal_45_cmd - self.gimbal_down_cmd
+        self.gimbal_pitch_override = (math.pi / 4.0) * (msg.value - self.gimbal_down_cmd) / span
 
     def _rot(self, r, p, y):
         cr, sr = math.cos(r), math.sin(r)
@@ -162,7 +179,7 @@ class SyntheticCam(Node):
             # board (forward drift, lateral sinusoids, and the constant
             # north creep). Lateral/forward ratio is preserved, so turn
             # angles match MOVING; only the magnitude shrinks.
-            vel_scale = 0.1 if self.scenario == 'MOVING_EASY' else 1.0
+            vel_scale = 0.25 if self.scenario == 'MOVING_EASY' else 1.0
 
             # Check altitude trigger — only after first real telemetry
             if not self.target_started:
