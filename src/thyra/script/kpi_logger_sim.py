@@ -156,6 +156,9 @@ class KpiLoggerSim(Node):
         last_cmd_yaw_vel = float(st.get('last_cmd_yaw_vel', 0.0))
         last_cmd_thrust  = float(st.get('last_cmd_thrust',  0.0))
 
+        forward_err = float(st.get('forward_err_m', 0.0))
+        lateral_err = float(st.get('lateral_err_m', 0.0))
+
         self.rows.append({
             'time_ms':                time_ms,
             'linear_error_m':         f'{linear_err:.4f}',
@@ -167,6 +170,8 @@ class KpiLoggerSim(Node):
             'target_y':               f'{ty:.4f}',
             'altitude_m':             f'{alt:.3f}',
             'state':                  st.get('state', ''),
+            'forward_err_m':          f'{forward_err:.4f}',
+            'lateral_err_m':          f'{lateral_err:.4f}',
             'last_cmd_pitch':         f'{last_cmd_pitch:.4f}',
             'last_cmd_roll':          f'{last_cmd_roll:.4f}',
             'last_cmd_yaw_vel':       f'{last_cmd_yaw_vel:.4f}',
@@ -197,6 +202,7 @@ class KpiLoggerSim(Node):
                     'engagement_duration_s',
                     'drone_x', 'drone_y', 'target_x', 'target_y',
                     'altitude_m', 'state',
+                    'forward_err_m', 'lateral_err_m',
                     'last_cmd_pitch', 'last_cmd_roll',
                     'last_cmd_yaw_vel', 'last_cmd_thrust'])
                 for row in self.rows:
@@ -207,6 +213,7 @@ class KpiLoggerSim(Node):
                         row['drone_x'], row['drone_y'],
                         row['target_x'], row['target_y'],
                         row['altitude_m'], row['state'],
+                        row['forward_err_m'], row['lateral_err_m'],
                         row['last_cmd_pitch'], row['last_cmd_roll'],
                         row['last_cmd_yaw_vel'], row['last_cmd_thrust']])
 

@@ -770,6 +770,8 @@ class VisionLandingMission(Node):
             'pixel_err_x':      float(self.pixel_err_x),
             'pixel_err_y':      float(self.pixel_err_y),
             'ground_err_m':     float(math.hypot(self.pixel_err_x, self.pixel_err_y)),
+            'forward_err_m':    float(self._body_err()[0]),
+            'lateral_err_m':    float(self._body_err()[1]),
             'gimbal_norm':      float(self.gimbal_angle_norm),
             'last_cmd_pitch':   float(self.last_cmd_pitch),
             'last_cmd_roll':    float(self.last_cmd_roll),

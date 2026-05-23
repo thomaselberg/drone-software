@@ -156,6 +156,9 @@ class KpiLoggerReal(Node):
         last_cmd_yaw_vel = float(st.get('last_cmd_yaw_vel', 0.0))
         last_cmd_thrust  = float(st.get('last_cmd_thrust',  0.0))
 
+        forward_err = float(st.get('forward_err_m', 0.0))
+        lateral_err = float(st.get('lateral_err_m', 0.0))
+
         self.rows.append({
             'time_ms':          time_ms,
             'drone_x':          f'{dx:.4f}',
@@ -166,6 +169,8 @@ class KpiLoggerReal(Node):
             'pixel_err_x':      f'{px_x:.4f}',
             'pixel_err_y':      f'{px_y:.4f}',
             'ground_err_m':     f'{ground_err:.4f}',
+            'forward_err_m':    f'{forward_err:.4f}',
+            'lateral_err_m':    f'{lateral_err:.4f}',
             'gimbal_norm':      f'{gimbal_norm:.3f}',
             'locked':           '1' if locked else '0',
             'state':            state,
@@ -194,6 +199,7 @@ class KpiLoggerReal(Node):
                     'drone_x', 'drone_y', 'drone_yaw_rad', 'rotation_error_deg',
                     'altitude_m',
                     'pixel_err_x', 'pixel_err_y', 'ground_err_m',
+                    'forward_err_m', 'lateral_err_m',
                     'gimbal_norm', 'locked', 'state',
                     'last_cmd_pitch', 'last_cmd_roll',
                     'last_cmd_yaw_vel', 'last_cmd_thrust'])
@@ -203,6 +209,7 @@ class KpiLoggerReal(Node):
                         row['drone_x'], row['drone_y'], row['drone_yaw_rad'],
                         row['rotation_error_deg'], row['altitude_m'],
                         row['pixel_err_x'], row['pixel_err_y'], row['ground_err_m'],
+                        row['forward_err_m'], row['lateral_err_m'],
                         row['gimbal_norm'], row['locked'], row['state'],
                         row['last_cmd_pitch'], row['last_cmd_roll'],
                         row['last_cmd_yaw_vel'], row['last_cmd_thrust']])
