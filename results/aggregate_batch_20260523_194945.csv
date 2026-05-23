@@ -1,0 +1,5 @@
+mode,scenario,total_runs,linear_error_m_n,linear_error_m_mean,linear_error_m_std,linear_error_m_min,linear_error_m_max,rotation_error_deg_n,rotation_error_deg_mean,rotation_error_deg_std,rotation_error_deg_min,rotation_error_deg_max,engagement_s_n,engagement_s_mean,engagement_s_std,engagement_s_min,engagement_s_max
+GIMBAL,DYNAMIC,10,10,0.2652,0.0679,0.1832,0.3931,10,-1.9380,6.4748,-11.3300,8.5600,10,27.3120,4.0513,21.3300,32.4600
+GIMBAL,STATIC,10,10,0.0331,0.0196,0.0110,0.0729,10,0.0230,0.0562,-0.0600,0.1200,10,16.7590,1.8330,14.7300,20.2200
+STATIC,DYNAMIC,10,8,0.2556,0.1058,0.1152,0.4324,8,-6.6913,19.4386,-27.2300,27.7100,8,22.6000,3.6307,17.9900,27.4900
+STATIC,STATIC,10,10,0.0974,0.0168,0.0663,0.1326,10,-0.1510,0.1034,-0.3300,0.0200,10,12.1800,1.2382,10.4900,14.3800
