@@ -58,7 +58,7 @@ _ARUCO_DICT = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
 # 180 = 6×30: a 4X4 marker is a 6×6 cell grid, so this gives clean cells.
 _MARKER_PX  = 180
 MARKER_IMG  = cv2.cvtColor(
-    cv2.aruco.drawMarker(_ARUCO_DICT, 0, _MARKER_PX),
+    cv2.aruco.generateImageMarker(_ARUCO_DICT, 0, _MARKER_PX),
     cv2.COLOR_GRAY2BGR)
 _SRC_CORNERS = np.array([
     [0,             0            ],
