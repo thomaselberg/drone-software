@@ -34,9 +34,9 @@ class MissionParams:
     # ── State-machine timing ────────────────────────────────────────
     stabilize_high_time:    float = 0.5   # dwell after ground-error lower bound met
     stabilize_high_timeout: float = 2.0  # safety cap on STABILIZE_HIGH
-    stabilize_low_time:     float = 5.0   # dwell at descend_alt before TERMINAL_LAND
+    stabilize_low_time:     float = 1.0   # dwell at descend_alt before TERMINAL_LAND
     slant_sweep_time:       float = 5.0   # gimbal 0 → -1 sweep duration
-    hold_hover_s:           float = 5.0   # HOLD phase-1 (hover) duration before descending
+    hold_hover_s:           float = 1.0   # HOLD phase-1 (hover) duration before descending
     coast_decay_time:       float = 4.0   # Time to decay velocity to zero after lock loss
     lpos_timeout:           float = 0.5   # local_pos staleness threshold (mid-flight loss)
     lpos_grace_s:           float = 5.0   # level-hold time before failsafe land on stale local_pos

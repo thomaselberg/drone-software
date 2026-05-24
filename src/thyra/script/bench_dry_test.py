@@ -27,6 +27,7 @@ state come from a real marker observed by the held drone.
 
 import json
 import math
+import signal
 
 import rclpy
 from rclpy.node import Node
@@ -137,16 +138,25 @@ class BenchDryTest(Node):
         self.gimbal_angle_norm = 0.0
         self.last_cmd_pitch    = 0.0
         self.last_cmd_roll     = 0.0
-        self.last_cmd_yaw      = 0.0
+        self.last_cmd_yaw_vel  = 0.0
         self.last_cmd_thrust   = 0.0
 
         # Simulated altitude (drone is stationary on the bench)
         self.virt_alt = 0.0
 
-        # HOLD bookkeeping
+        # HOLD bookkeeping (coast snapshot mirrors vision_landing_mission)
         self.lock_loss_start    = None
         self.lock_loss_alt      = None
         self.hold_descent_start = None
+        self.coast_pitch        = 0.0
+        self.coast_roll         = 0.0
+        self.coast_yaw_vel      = 0.0
+
+        # TERMINAL_LAND coast bookkeeping (lock-loss during terminal descent)
+        self.terminal_loss_start    = None
+        self.terminal_coast_pitch   = 0.0
+        self.terminal_coast_roll    = 0.0
+        self.terminal_coast_yaw_vel = 0.0
 
         # STABILIZE_HIGH dwell bookkeeping
         self.stab_high_threshold_seen = False
@@ -155,6 +165,9 @@ class BenchDryTest(Node):
         # TERMINAL_LAND simulation timers
         self.terminal_start          = None
         self.terminal_descent_start  = None
+
+        # Ctrl+C abort flag — set by SIGINT handler, picked up by _mission_tick.
+        self.abort_requested = False
 
         # ── Timers ────────────────────────────────────────────────────
         self.create_timer(0.1, self._heartbeat_tick)
@@ -214,10 +227,10 @@ class BenchDryTest(Node):
         roll    = max(-1.0, min(1.0, roll))
         yaw_vel = max(-1.0, min(1.0, yaw_vel))
         thrust  = max(-1.0, min(1.0, thrust))
-        self.last_cmd_pitch  = pitch
-        self.last_cmd_roll   = roll
-        self.last_cmd_yaw    = yaw_vel
-        self.last_cmd_thrust = thrust
+        self.last_cmd_pitch   = pitch
+        self.last_cmd_roll    = roll
+        self.last_cmd_yaw_vel = yaw_vel
+        self.last_cmd_thrust  = thrust
         self.get_logger().info(
             f'[DRY] {self.state:<14s} virt_alt={self.virt_alt:.2f}m '
             f'gimbal={self.gimbal_angle_norm:+.2f} '
@@ -253,19 +266,37 @@ class BenchDryTest(Node):
         alt_err = target_alt - self.virt_alt
         return -self.KP_ALT * alt_err
 
+    def _kp_for_altitude(self):
+        """Linear blend KP_HIGH → KP_LOW between takeoff_alt and
+        terminal_alt_trigger (mirrors vision_landing_mission)."""
+        alt = self.virt_alt
+        if alt >= self.takeoff_alt:
+            return self.KP_HIGH
+        if alt <= self.terminal_alt_trigger:
+            return self.KP_LOW
+        frac = (self.takeoff_alt - alt) / (self.takeoff_alt - self.terminal_alt_trigger)
+        return self.KP_HIGH + frac * (self.KP_LOW - self.KP_HIGH)
+
+    def _body_err(self):
+        """Rotate the NED ground error into the drone body frame.
+        Returns (err_fwd, err_side)."""
+        yaw = self.drone_state.orientation[2] if len(self.drone_state.orientation) >= 3 else 0.0
+        cy, sy = math.cos(yaw), math.sin(yaw)
+        err_fwd  =  self.pixel_err_x * cy + self.pixel_err_y * sy
+        err_side = -self.pixel_err_x * sy + self.pixel_err_y * cy
+        return err_fwd, err_side
+
     def _track_target(self, descend_rate=0.0, kp=None):
         if kp is None:
-            kp = self.KP_LOW
+            kp = self._kp_for_altitude()
         if not self.locked:
             # Lock-loss in tracking states is normally caught by _enter_hold
             # in the central tick; this branch is the fall-back for STATIC
             # TERMINAL_LAND (intentionally lock-free).
             self._log_cmd(self.last_cmd_pitch, self.last_cmd_roll, 0.0, descend_rate)
             return
-        yaw = self.drone_state.orientation[2] if len(self.drone_state.orientation) >= 3 else 0.0
-        cy, sy = math.cos(yaw), math.sin(yaw)
-        err_fwd  =  self.pixel_err_x * cy + self.pixel_err_y * sy
-        err_side = -self.pixel_err_x * sy + self.pixel_err_y * cy
+
+        err_fwd, err_side = self._body_err()
 
         # Camera-offset compensation (marker-frame), mirrors vision_landing_mission.
         rel_yaw_rad = math.radians(self.relative_yaw_deg)
@@ -288,6 +319,12 @@ class BenchDryTest(Node):
         self.lock_loss_start = self.get_clock().now()
         self.lock_loss_alt   = self.virt_alt
         self.hold_descent_start = None
+
+        # Snapshot last command for coast decay (mirrors vision_landing_mission).
+        self.coast_pitch   = self.last_cmd_pitch
+        self.coast_roll    = self.last_cmd_roll
+        self.coast_yaw_vel = self.last_cmd_yaw_vel
+
         self._transition(MissionState.HOLD)
         self.get_logger().warn(
             f'[DRY] LOCK LOST in {self.return_state} at virt_alt={self.lock_loss_alt:.2f}m '
@@ -312,10 +349,14 @@ class BenchDryTest(Node):
             return
 
         if elapsed_lost < self.hold_hover_s:
-            # Phase 1: hover at altitude of loss
+            # Phase 1: hover at altitude of loss; decay coast pitch/roll/yaw_vel.
             self.virt_alt = self.lock_loss_alt
-            thrust = self._alt_hold_thrust(self.lock_loss_alt)
-            self._log_cmd(0.0, 0.0, 0.0, thrust)
+            factor = max(0.0, 1.0 - (elapsed_lost / self.coast_decay_time))
+            pitch   = self.coast_pitch   * factor
+            roll    = self.coast_roll    * factor
+            yaw_vel = self.coast_yaw_vel * factor
+            thrust  = self._alt_hold_thrust(self.lock_loss_alt)
+            self._log_cmd(pitch, roll, yaw_vel, thrust)
         else:
             # Phase 2: controlled descent at descend_vz
             if self.hold_descent_start is None:
@@ -324,22 +365,76 @@ class BenchDryTest(Node):
             self.virt_alt = max(0.0, self.lock_loss_alt - self.descend_vz * descent_s)
             self._log_cmd(0.0, 0.0, 0.0, self.descend_vz)
 
+    def _tick_terminal_coast(self):
+        """TERMINAL_LAND lock-loss handler — skip HOLD, coast laterally while
+        keeping descent at descend_vz. Mirrors vision_landing_mission.
+        Recovery is automatic: next tick with lock falls through to the
+        TERMINAL_LAND branch, which clears terminal_loss_start."""
+        if self.virt_alt < self.terminal_trig:
+            self._log_action('land')
+            self._transition(MissionState.DONE)
+            return
+
+        if self.terminal_loss_start is None:
+            self.terminal_loss_start    = self.get_clock().now()
+            self.terminal_coast_pitch   = self.last_cmd_pitch
+            self.terminal_coast_roll    = self.last_cmd_roll
+            self.terminal_coast_yaw_vel = self.last_cmd_yaw_vel
+            self.get_logger().warn(
+                f'[DRY] TERMINAL_LAND lock lost at virt_alt={self.virt_alt:.2f}m '
+                f'— coasting descent at {self.descend_vz:.2f}m/s')
+
+        elapsed_lost = (self.get_clock().now() - self.terminal_loss_start).nanoseconds / 1e9
+        factor = max(0.0, 1.0 - (elapsed_lost / self.coast_decay_time))
+        pitch   = self.terminal_coast_pitch   * factor
+        roll    = self.terminal_coast_roll    * factor
+        yaw_vel = self.terminal_coast_yaw_vel * factor
+
+        # Simulated continued descent
+        self.virt_alt = max(0.0, self.virt_alt - self.descend_vz * 0.05)
+        self._log_cmd(pitch, roll, yaw_vel, self.descend_vz)
+
     # ══════════════════════════════════════════════════════════════════
     #  Main state machine — line-for-line mirror of vision_landing_mission
     # ══════════════════════════════════════════════════════════════════
     def _mission_tick(self):
+        airborne = self.state not in (
+            MissionState.IDLE, MissionState.ARMING, MissionState.DONE)
+
+        # ── Ctrl+C abort — pre-empts everything ──────────────────────
+        if self.abort_requested and self.state != MissionState.DONE:
+            if airborne:
+                self.get_logger().warn('[DRY] ABORT (Ctrl+C) → would have commanded LAND')
+                self._log_action('land')
+                self._transition(MissionState.DONE)
+            else:
+                self.get_logger().info('[DRY] ABORT (Ctrl+C) on ground → exiting')
+                raise SystemExit(0)
+            return
+
+        # Note: _tick_lpos_failsafe is NOT mirrored — bench drives off virt_alt,
+        # not VehicleLocalPosition, so the staleness failsafe does not apply.
+
         # HOLD dispatcher
         if self.state == MissionState.HOLD:
             self._tick_hold()
             return
 
-        # Lock-loss check (STATIC TERMINAL_LAND is intentionally lock-free)
+        # Lock-loss check
         if self.state in _TRACKING_STATES and not self.locked:
             in_static_terminal = (self.state == MissionState.TERMINAL_LAND
                                   and self.mode == 'STATIC')
+            if self.state == MissionState.TERMINAL_LAND and not in_static_terminal:
+                # GIMBAL terminal land: skip HOLD, coast descent.
+                self._tick_terminal_coast()
+                return
             if not in_static_terminal:
                 self._enter_hold()
                 return
+
+        # Lock present in TERMINAL_LAND (or recovered) — clear coast bookkeeping
+        if self.state == MissionState.TERMINAL_LAND and self.locked:
+            self.terminal_loss_start = None
 
         elapsed = self._elapsed()
 
@@ -384,7 +479,8 @@ class BenchDryTest(Node):
         elif self.state == MissionState.SEARCH:
             self.virt_alt = self.takeoff_alt
             self._set_gimbal(0.0)
-            if self.scenario == 'DYNAMIC':
+            if self.scenario != 'STATIC':
+                # DYNAMIC: hold position, wait for the moving target to enter FoV.
                 thrust = self._alt_hold_thrust(self.takeoff_alt)
                 self._log_cmd(0.0, 0.0, 0.0, thrust)
             else:
@@ -400,18 +496,28 @@ class BenchDryTest(Node):
 
             if self.locked:
                 d_ground = math.hypot(self.pixel_err_x, self.pixel_err_y)
-                if d_ground < 3.0:
-                    self.get_logger().info(
-                        f'[DRY] ArUco LOCKED & ground err {d_ground:.2f}m < 3m')
-                    if self.scenario == 'DYNAMIC':
-                        self._transition(MissionState.STABILIZE_HIGH)
+                if d_ground < self.ground_err_thresh:
+                    if self.scenario != 'STATIC':
+                        # DYNAMIC: only engage once target is AHEAD of the drone
+                        # (positive body-forward error). No timeout — safer to
+                        # keep hovering than fire with err_fwd ≤ 0.
+                        err_fwd, _ = self._body_err()
+                        if err_fwd > 0.0:
+                            self.get_logger().info(
+                                f'[DRY] SEARCH gate cleared  err_fwd={err_fwd:+.2f}m  '
+                                f'd_ground={d_ground:.2f}m  t={elapsed:.1f}s '
+                                f'→ STABILIZE_HIGH')
+                            self._transition(MissionState.STABILIZE_HIGH)
                     else:
+                        self.get_logger().info(
+                            f'[DRY] ArUco LOCKED & ground err {d_ground:.2f}m '
+                            f'< {self.ground_err_thresh:.2f}m')
                         self._transition(MissionState.DESCEND_TO_LOW)
 
         elif self.state == MissionState.STABILIZE_HIGH:
             self.virt_alt = self.takeoff_alt
             thrust = self._alt_hold_thrust(self.takeoff_alt)
-            self._track_target(descend_rate=thrust, kp=self.KP_HIGH)
+            self._track_target(descend_rate=thrust)
             d_ground = math.hypot(self.pixel_err_x, self.pixel_err_y)
 
             # Lower bound: arm the dwell timer the first time ground_err
@@ -450,13 +556,13 @@ class BenchDryTest(Node):
                     f'[DRY] Reached {self.descend_alt}m → STABILIZE_LOW')
                 self._transition(MissionState.STABILIZE_LOW)
             else:
-                self._track_target(descend_rate=self.descend_vz, kp=self.KP_LOW)
+                self._track_target(descend_rate=self.descend_vz)
 
         elif self.state == MissionState.STABILIZE_LOW:
             self.virt_alt = self.descend_alt
             self._set_gimbal(0.0)
             thrust = self._alt_hold_thrust(self.descend_alt)
-            self._track_target(descend_rate=thrust, kp=self.KP_LOW)
+            self._track_target(descend_rate=thrust)
             if elapsed >= self.stabilize_low_time:
                 self.get_logger().info('[DRY] Stable at low alt → TERMINAL_LAND')
                 self._transition(MissionState.TERMINAL_LAND)
@@ -473,12 +579,12 @@ class BenchDryTest(Node):
                     self.terminal_descent_start = self.get_clock().now()
                 descent_s = (self.get_clock().now() - self.terminal_descent_start).nanoseconds / 1e9
                 self.virt_alt = max(0.0, self.descend_alt - self.descend_vz * descent_s)
-                self._track_target(descend_rate=self.descend_vz, kp=self.KP_LOW)
+                self._track_target(descend_rate=self.descend_vz)
             else:
                 # Hold at descend_alt during the sweep (matches real flight
                 # behavior: descend_rate=0 in this phase)
                 self.virt_alt = self.descend_alt
-                self._track_target(descend_rate=0.0, kp=self.KP_LOW)
+                self._track_target(descend_rate=0.0)
             # Touchdown trigger handled centrally above.
 
         elif self.state == MissionState.DONE:
@@ -493,19 +599,23 @@ class BenchDryTest(Node):
     def _publish_mission_state(self):
         first_lock_ns = (self.first_lock_time.nanoseconds
                          if self.first_lock_time is not None else 0)
+        fwd, side = self._body_err()
         payload = {
             'state':            self.state,
-            'mode':             'BENCH_DRY',
+            'mode':             self.mode,
             'scenario':         self.scenario,
+            'bench':            True,
             'locked':           bool(self.locked),
             'altitude_m':       float(self.virt_alt),
             'pixel_err_x':      float(self.pixel_err_x),
             'pixel_err_y':      float(self.pixel_err_y),
             'ground_err_m':     float(math.hypot(self.pixel_err_x, self.pixel_err_y)),
+            'forward_err_m':    float(fwd),
+            'lateral_err_m':    float(side),
             'gimbal_norm':      float(self.gimbal_angle_norm),
             'last_cmd_pitch':   float(self.last_cmd_pitch),
             'last_cmd_roll':    float(self.last_cmd_roll),
-            'last_cmd_yaw_vel': float(self.last_cmd_yaw),
+            'last_cmd_yaw_vel': float(self.last_cmd_yaw_vel),
             'last_cmd_thrust':  float(self.last_cmd_thrust),
             'relative_yaw_deg': float(self.relative_yaw_deg),
             'first_lock_ns':    int(first_lock_ns),
@@ -515,13 +625,27 @@ class BenchDryTest(Node):
         msg.data = json.dumps(payload)
         self.pub_state.publish(msg)
 
+    # ══════════════════════════════════════════════════════════════════
+    #  Abort handler (Ctrl+C) — mirrors vision_landing_mission
+    # ══════════════════════════════════════════════════════════════════
+    def request_abort(self):
+        if self.abort_requested:
+            return
+        self.get_logger().warn('[DRY] SIGINT received — flagging abort')
+        self.abort_requested = True
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+
 
 def main(args=None):
-    rclpy.init(args=args)
+    # Disable rclpy's own SIGINT handling so Ctrl+C does not tear the rcl
+    # context down before _mission_tick can log the abort + would-be land.
+    rclpy.init(args=args,
+               signal_handler_options=rclpy.signals.SignalHandlerOptions.NO)
     node = BenchDryTest()
+    signal.signal(signal.SIGINT, lambda *_: node.request_abort())
     try:
         rclpy.spin(node)
-    except (KeyboardInterrupt, SystemExit, ExternalShutdownException):
+    except (SystemExit, ExternalShutdownException):
         pass
     finally:
         node.destroy_node()
