@@ -266,6 +266,13 @@ class BenchDryTest(Node):
         cy, sy = math.cos(yaw), math.sin(yaw)
         err_fwd  =  self.pixel_err_x * cy + self.pixel_err_y * sy
         err_side = -self.pixel_err_x * sy + self.pixel_err_y * cy
+
+        # Camera-offset compensation (marker-frame), mirrors vision_landing_mission.
+        rel_yaw_rad = math.radians(self.relative_yaw_deg)
+        c, s = math.cos(rel_yaw_rad), math.sin(rel_yaw_rad)
+        err_fwd  += self.cam_offset_x * c - self.cam_offset_y * s
+        err_side += self.cam_offset_x * s + self.cam_offset_y * c
+
         cmd_pitch = kp * err_fwd
         cmd_roll  = kp * err_side
         yaw_cmd   = self.relative_yaw_deg * self.KP_YAW

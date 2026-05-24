@@ -51,12 +51,16 @@ class MissionParams:
     target_start_y: float = 0.0   # metres East  in NED
 
     # ── Hardware geometry ───────────────────────────────────────────
-    # Camera mounted forward of drone center in body-X. The controller
-    # biases the visual servo by this distance (in the marker's forward
-    # direction) so the drone *center* — not the camera — ends up over
-    # the target. Synthetic cam uses the same value to render from the
-    # actual camera position so sim and real agree.
-    cam_offset_x: float = 0.15
+    # Camera body-frame offset from drone COM (FRD: +x fwd, +y right,
+    # +z down). Mounted 12 cm forward, 2.5 cm left (→ y = -0.025), and
+    # 6 cm below COM. The controller biases the visual servo by the
+    # (x,y) component, rotated into the marker frame, so the drone
+    # *center* — not the camera — ends up over the target. Detector
+    # and synthetic cam use the full 3-vector to compute the actual
+    # camera world position so sim and real agree.
+    cam_offset_x: float =  0.12
+    cam_offset_y: float = -0.025
+    cam_offset_z: float =  0.06
 
     # ── Gimbal servo calibration (real flight only) ─────────────────
     # The mission's logical gimbal value is -1.0=down, 0.0=45°, +1.0=
@@ -65,5 +69,6 @@ class MissionParams:
     # logical value still goes out on /gimbal/cmd_pitch unchanged, so
     # the synthetic cam is unaffected. Re-measure and override these
     # via ROS params before a real flight if the servo shifts.
-    gimbal_down_cmd: float = -0.95  # servo value for straight-down
-    gimbal_45_cmd:   float = 0.10   # servo value for 45° slant
+    # Calibrated 2026-05-24: -0.860 = down, +0.10 = 45° slant.
+    gimbal_down_cmd: float = -0.860  # servo value for straight-down
+    gimbal_45_cmd:   float =  0.10   # servo value for 45° slant

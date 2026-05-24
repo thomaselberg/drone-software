@@ -25,7 +25,7 @@ Gimbal: subscribes to the raw-servo topic /asr/thyra/in/servo_command
 servo value to camera pitch via the measured calibration endpoints —
 gimbal_down_cmd → straight down (0 rad), gimbal_45_cmd → 45° (π/4 rad).
 
-The camera is rendered from drone_pos + R_drone @ [cam_offset_x, 0, 0],
+The camera is rendered from drone_pos + R_drone @ [cam_offset_x, y, z],
 so body pitch/roll/yaw shift the camera viewpoint just like the real
 forward-mounted RealSense.
 """
@@ -82,17 +82,22 @@ class SyntheticCam(Node):
         self.declare_parameter('height', 480)
         self.declare_parameter('hfov_deg', 85.0)
         self.declare_parameter('scenario', 'MOVING')  # STATIC, MOVING, or MOVING_EASY
-        self.declare_parameter('cam_offset_x', 0.15)  # camera fwd of drone center [m]
+        # Camera body-frame offset from COM (FRD). Must match MissionParams.
+        self.declare_parameter('cam_offset_x',  0.12)
+        self.declare_parameter('cam_offset_y', -0.025)
+        self.declare_parameter('cam_offset_z',  0.06)
         # Gimbal servo calibration — must match MissionParams.gimbal_*.
         # The /asr/thyra/in/servo_command topic carries raw servo values;
         # these endpoints map a raw value to the camera pitch.
-        self.declare_parameter('gimbal_down_cmd', -0.95)  # raw servo → straight down
-        self.declare_parameter('gimbal_45_cmd',    0.10)  # raw servo → 45° slant
+        self.declare_parameter('gimbal_down_cmd', -0.860)  # raw servo → straight down
+        self.declare_parameter('gimbal_45_cmd',    0.10)   # raw servo → 45° slant
 
         self.scenario = self.get_parameter('scenario').value.upper()
         self.target_x = self.get_parameter('target_start_x').value
         self.target_y = self.get_parameter('target_start_y').value
         self.cam_offset_x    = self.get_parameter('cam_offset_x').value
+        self.cam_offset_y    = self.get_parameter('cam_offset_y').value
+        self.cam_offset_z    = self.get_parameter('cam_offset_z').value
         self.gimbal_down_cmd = self.get_parameter('gimbal_down_cmd').value
         self.gimbal_45_cmd   = self.get_parameter('gimbal_45_cmd').value
 
@@ -235,12 +240,13 @@ class SyntheticCam(Node):
         R_drone = self._rot(self.att[0], self.att[1], self.att[2])
         R_total = R_drone @ self._rot(0.0, cam_pitch, 0.0)
 
-        # Camera sits cam_offset_x forward of drone center (body frame).
+        # Camera sits at body-frame offset (x fwd, y right, z down) from COM.
         # Rotating through the drone attitude captures every translation
-        # effect of body motion: pitch shifts it mostly in Z, yaw traces a
-        # horizontal arc in X/Y, roll does nothing (camera is on the roll
-        # axis). The gimbal only rotates the optical axis, not the body.
-        cam_pos = drone_pos + R_drone @ np.array([self.cam_offset_x, 0.0, 0.0])
+        # effect of body motion: pitch shifts it in X/Z, yaw traces a
+        # horizontal arc in X/Y, roll shifts it in Y/Z. The gimbal only
+        # rotates the optical axis, not the body.
+        cam_pos = drone_pos + R_drone @ np.array(
+            [self.cam_offset_x, self.cam_offset_y, self.cam_offset_z])
 
         # 3a. Grid
         grid_color = (0, 255, 255)

@@ -70,10 +70,19 @@ class ArucoDetector(Node):
         # Gimbal servo calibration — must match MissionParams.gimbal_*.
         # /asr/thyra/in/servo_command carries raw servo values; these
         # endpoints map a raw value back to the camera pitch.
-        self.declare_parameter('gimbal_down_cmd', -0.95)  # raw servo → straight down
-        self.declare_parameter('gimbal_45_cmd',    0.10)  # raw servo → 45° slant
+        self.declare_parameter('gimbal_down_cmd', -0.860)  # raw servo → straight down
+        self.declare_parameter('gimbal_45_cmd',    0.10)   # raw servo → 45° slant
         self.gimbal_down_cmd = self.get_parameter('gimbal_down_cmd').value
         self.gimbal_45_cmd   = self.get_parameter('gimbal_45_cmd').value
+
+        # Camera body-frame offset from COM (FRD). Must match MissionParams.
+        # Used to compute the actual camera world position for ground projection.
+        self.declare_parameter('cam_offset_x',  0.12)
+        self.declare_parameter('cam_offset_y', -0.025)
+        self.declare_parameter('cam_offset_z',  0.06)
+        self.cam_offset_x = self.get_parameter('cam_offset_x').value
+        self.cam_offset_y = self.get_parameter('cam_offset_y').value
+        self.cam_offset_z = self.get_parameter('cam_offset_z').value
 
         # Camera intrinsics (must match the synthetic cam in sim and the
         # real RealSense in flight).
@@ -113,50 +122,56 @@ class ArucoDetector(Node):
         span = self.gimbal_45_cmd - self.gimbal_down_cmd
         self.gimbal_pitch = (math.pi / 4.0) * (msg.value - self.gimbal_down_cmd) / span
 
-    def _to_ground(self, u, v, alt):
-        """Project pixel (u,v) to ground plane NED meters relative to drone."""
-        # Image to camera-frame unit vector
+    def _camera_world(self):
+        """Camera position in NED world frame, accounting for body offset.
+        Returns (cam_world_pos[3], R_drone, cam_alt_above_ground)."""
+        R_drone = self._rot(self.drone_att[0], self.drone_att[1], self.drone_att[2])
+        body_off = np.array([self.cam_offset_x, self.cam_offset_y, self.cam_offset_z])
+        cam_world = np.array(self.drone_pos) + R_drone @ body_off
+        cam_alt = -cam_world[2]
+        return cam_world, R_drone, cam_alt
+
+    def _to_ground(self, u, v):
+        """Project pixel (u,v) to ground plane NED meters relative to the camera.
+        Uses the actual camera world altitude (COM + R_drone @ body_offset)."""
         vec_c = np.array([-(v - self.h/2.0)/self.f_px, (u - self.w/2.0)/self.f_px, 1.0])
 
-        # Camera to NED rotation
         pitch_total = self.gimbal_pitch if self.gimbal_pitch is not None else self.mount_pitch
-
-        R_drone = self._rot(self.drone_att[0], self.drone_att[1], self.drone_att[2])
+        _, R_drone, cam_alt = self._camera_world()
         R_mount = self._rot(0.0, pitch_total, 0.0)
         R = R_drone @ R_mount
 
         # Target Ground Projection
         vec_n_target = R @ vec_c
         if vec_n_target[2] <= 0: return None
-        k_target = alt / vec_n_target[2]
+        k_target = cam_alt / vec_n_target[2]
         ground_target = vec_n_target * k_target
 
         # Center-of-FOV Ground Projection
         vec_c_center = np.array([0.0, 0.0, 1.0])
         vec_n_center = R @ vec_c_center
         if vec_n_center[2] <= 0: return None
-        k_center = alt / vec_n_center[2]
+        k_center = cam_alt / vec_n_center[2]
         ground_center = vec_n_center * k_center
 
         # The error for control is (Target - Boresight) in ground meters
         rel_err = ground_target - ground_center
-        return rel_err[:2]  # [x_m, y_m] relative to drone in NED
+        return rel_err[:2]  # [x_m, y_m] relative to camera boresight in NED
 
-    def _to_ground_absolute(self, u, v, alt):
-        """Project pixel (u,v) to absolute NED ground position (for heading calc)."""
+    def _to_ground_absolute(self, u, v):
+        """Project pixel (u,v) to NED ground offset from the camera (for heading)."""
         vec_c = np.array([-(v - self.h/2.0)/self.f_px, (u - self.w/2.0)/self.f_px, 1.0])
 
         pitch_total = self.gimbal_pitch if self.gimbal_pitch is not None else self.mount_pitch
-
-        R_drone = self._rot(self.drone_att[0], self.drone_att[1], self.drone_att[2])
+        _, R_drone, cam_alt = self._camera_world()
         R_mount = self._rot(0.0, pitch_total, 0.0)
         R = R_drone @ R_mount
 
         vec_n = R @ vec_c
         if vec_n[2] <= 0: return None
-        k = alt / vec_n[2]
+        k = cam_alt / vec_n[2]
         ground_pos = vec_n * k
-        return ground_pos[:2]  # [North, East] offset from drone
+        return ground_pos[:2]  # [North, East] offset from camera
 
     def _rot(self, roll, pitch, yaw):
         cr, sr = math.cos(roll), math.sin(roll)
@@ -185,8 +200,8 @@ class ArucoDetector(Node):
             mc_y = float(np.mean(c[:, 1]))
 
             # ── Linear Error (Ground Projection) for CENTERING ──
-            alt = -self.drone_pos[2]
-            g_pos = self._to_ground(mc_x, mc_y, alt)
+            # Uses true camera altitude (COM altitude − cam_offset_z, plus tilt).
+            g_pos = self._to_ground(mc_x, mc_y)
 
             if g_pos is not None:
                 err_x_m = g_pos[0]  # North offset from boresight in meters
@@ -207,8 +222,8 @@ class ArucoDetector(Node):
             mid_back_u  = (c[3][0] + c[2][0]) / 2.0  # BL + BR
             mid_back_v  = (c[3][1] + c[2][1]) / 2.0
 
-            gp_front = self._to_ground_absolute(mid_front_u, mid_front_v, alt)
-            gp_back  = self._to_ground_absolute(mid_back_u,  mid_back_v,  alt)
+            gp_front = self._to_ground_absolute(mid_front_u, mid_front_v)
+            gp_back  = self._to_ground_absolute(mid_back_u,  mid_back_v)
 
             relative_yaw_deg = 0.0
             if gp_front is not None and gp_back is not None:

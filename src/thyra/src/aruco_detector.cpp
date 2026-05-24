@@ -23,10 +23,19 @@ public:
         // Gimbal servo calibration — must match MissionParams.gimbal_*.
         // /asr/thyra/in/servo_command carries raw servo values; these
         // endpoints map a raw value back to the camera pitch.
-        this->declare_parameter<double>("gimbal_down_cmd", -0.95);
+        this->declare_parameter<double>("gimbal_down_cmd", -0.860);
         this->declare_parameter<double>("gimbal_45_cmd",    0.10);
         gimbal_down_cmd_ = this->get_parameter("gimbal_down_cmd").as_double();
         gimbal_45_cmd_   = this->get_parameter("gimbal_45_cmd").as_double();
+
+        // Camera body-frame offset from COM (FRD). Must match MissionParams.
+        // Used to compute the actual camera world position for ground projection.
+        this->declare_parameter<double>("cam_offset_x",  0.12);
+        this->declare_parameter<double>("cam_offset_y", -0.025);
+        this->declare_parameter<double>("cam_offset_z",  0.06);
+        cam_offset_x_ = this->get_parameter("cam_offset_x").as_double();
+        cam_offset_y_ = this->get_parameter("cam_offset_y").as_double();
+        cam_offset_z_ = this->get_parameter("cam_offset_z").as_double();
 
         drone_pos_ = {0.0, 0.0, 0.0};
         drone_att_ = {0.0, 0.0, 0.0};
@@ -79,6 +88,7 @@ private:
     double mount_pitch_;
     double gimbal_pitch_;
     double gimbal_down_cmd_, gimbal_45_cmd_;
+    double cam_offset_x_, cam_offset_y_, cam_offset_z_;
     double w_, h_, f_px_;
 
     cv::Ptr<cv::aruco::Dictionary> aruco_dict_;
@@ -124,26 +134,40 @@ private:
         return Rz * Ry * Rx;
     }
 
-    bool to_ground(double u, double v, double alt, double& out_x, double& out_y) {
+    // Camera world position = COM + R_drone @ body_offset. Returns R_drone
+    // and the camera altitude above ground (positive up).
+    void camera_world(cv::Mat& R_drone_out, double& cam_alt_out) {
+        R_drone_out = rot(drone_att_[0], drone_att_[1], drone_att_[2]);
+        cv::Mat body_off = (cv::Mat_<double>(3, 1) << cam_offset_x_,
+                                                       cam_offset_y_,
+                                                       cam_offset_z_);
+        cv::Mat off_world = R_drone_out * body_off;
+        double cam_world_z = drone_pos_[2] + off_world.at<double>(2, 0);
+        cam_alt_out = -cam_world_z;
+    }
+
+    bool to_ground(double u, double v, double& out_x, double& out_y) {
         cv::Mat vec_c = (cv::Mat_<double>(3, 1) << -(v - h_ / 2.0) / f_px_,
                                                     (u - w_ / 2.0) / f_px_,
                                                     1.0);
 
         double pitch_total = (gimbal_pitch_ > -900.0) ? gimbal_pitch_ : mount_pitch_;
 
-        cv::Mat R_drone = rot(drone_att_[0], drone_att_[1], drone_att_[2]);
+        cv::Mat R_drone;
+        double cam_alt;
+        camera_world(R_drone, cam_alt);
         cv::Mat R_mount = rot(0.0, pitch_total, 0.0);
         cv::Mat R = R_drone * R_mount;
 
         cv::Mat vec_n_target = R * vec_c;
         if (vec_n_target.at<double>(2, 0) <= 0) return false;
-        double k_target = alt / vec_n_target.at<double>(2, 0);
+        double k_target = cam_alt / vec_n_target.at<double>(2, 0);
         cv::Mat ground_target = vec_n_target * k_target;
 
         cv::Mat vec_c_center = (cv::Mat_<double>(3, 1) << 0.0, 0.0, 1.0);
         cv::Mat vec_n_center = R * vec_c_center;
         if (vec_n_center.at<double>(2, 0) <= 0) return false;
-        double k_center = alt / vec_n_center.at<double>(2, 0);
+        double k_center = cam_alt / vec_n_center.at<double>(2, 0);
         cv::Mat ground_center = vec_n_center * k_center;
 
         out_x = ground_target.at<double>(0, 0) - ground_center.at<double>(0, 0);
@@ -151,21 +175,23 @@ private:
         return true;
     }
 
-    bool to_ground_absolute(double u, double v, double alt, double& out_n, double& out_e) {
+    bool to_ground_absolute(double u, double v, double& out_n, double& out_e) {
         cv::Mat vec_c = (cv::Mat_<double>(3, 1) << -(v - h_ / 2.0) / f_px_,
                                                     (u - w_ / 2.0) / f_px_,
                                                     1.0);
 
         double pitch_total = (gimbal_pitch_ > -900.0) ? gimbal_pitch_ : mount_pitch_;
 
-        cv::Mat R_drone = rot(drone_att_[0], drone_att_[1], drone_att_[2]);
+        cv::Mat R_drone;
+        double cam_alt;
+        camera_world(R_drone, cam_alt);
         cv::Mat R_mount = rot(0.0, pitch_total, 0.0);
         cv::Mat R = R_drone * R_mount;
 
         cv::Mat vec_n = R * vec_c;
         if (vec_n.at<double>(2, 0) <= 0) return false;
-        double k = alt / vec_n.at<double>(2, 0);
-        
+        double k = cam_alt / vec_n.at<double>(2, 0);
+
         out_n = vec_n.at<double>(0, 0) * k;
         out_e = vec_n.at<double>(1, 0) * k;
         return true;
@@ -209,9 +235,8 @@ private:
             mc_x /= 4.0;
             mc_y /= 4.0;
 
-            double alt = -drone_pos_[2];
             double err_x_m, err_y_m;
-            if (to_ground(mc_x, mc_y, alt, err_x_m, err_y_m)) {
+            if (to_ground(mc_x, mc_y, err_x_m, err_y_m)) {
                 out.vector.x = err_x_m;
                 out.vector.y = err_y_m;
                 out.vector.z = 1.0;
@@ -230,8 +255,8 @@ private:
             double gp_back_n, gp_back_e;
             double relative_yaw_deg = 0.0;
 
-            if (to_ground_absolute(mid_front_u, mid_front_v, alt, gp_front_n, gp_front_e) &&
-                to_ground_absolute(mid_back_u, mid_back_v, alt, gp_back_n, gp_back_e)) {
+            if (to_ground_absolute(mid_front_u, mid_front_v, gp_front_n, gp_front_e) &&
+                to_ground_absolute(mid_back_u, mid_back_v, gp_back_n, gp_back_e)) {
                 double fwd_n = gp_front_n - gp_back_n;
                 double fwd_e = gp_front_e - gp_back_e;
                 double marker_heading_world = std::atan2(fwd_e, fwd_n);

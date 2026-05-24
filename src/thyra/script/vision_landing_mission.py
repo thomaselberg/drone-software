@@ -379,16 +379,17 @@ class VisionLandingMission(Node):
 
         err_fwd, err_side = self._body_err()
 
-        # Compensate for the camera being mounted cam_offset_x forward of the
-        # drone center. We want the *drone* — not the camera — to end up over
-        # the target, so the camera's aim point is biased ahead of the target
-        # in the marker's forward direction (relative_yaw_deg is the marker
-        # heading in body frame). When yaw is aligned this is purely +X body;
-        # during turns the bias rotates with the marker so the goal point
-        # stays consistent.
+        # Compensate for the camera being offset from the drone center
+        # (cam_offset_x fwd, cam_offset_y right in body frame). We want the
+        # *drone* — not the camera — to end up over the target, so the camera's
+        # aim point is biased by this offset rotated into the marker frame
+        # (relative_yaw_deg is the marker heading relative to body). When yaw
+        # is aligned this is the raw body offset; during turns the bias
+        # rotates with the marker so the goal point stays consistent.
         rel_yaw_rad = math.radians(self.relative_yaw_deg)
-        err_fwd  += self.cam_offset_x * math.cos(rel_yaw_rad)
-        err_side += self.cam_offset_x * math.sin(rel_yaw_rad)
+        c, s = math.cos(rel_yaw_rad), math.sin(rel_yaw_rad)
+        err_fwd  += self.cam_offset_x * c - self.cam_offset_y * s
+        err_side += self.cam_offset_x * s + self.cam_offset_y * c
 
         cmd_pitch = max(-1.0, min(1.0, kp * err_fwd))
         cmd_roll  = max(-1.0, min(1.0, kp * err_side))
