@@ -28,6 +28,9 @@ state come from a real marker observed by the held drone.
 import json
 import math
 import signal
+import csv
+import os
+from datetime import datetime
 
 import rclpy
 from rclpy.node import Node
@@ -78,9 +81,12 @@ class BenchDryTest(Node):
         # ── Runtime config (mirror vision_landing_mission) ────────────
         self.declare_parameter('mode', 'GIMBAL')
         self.declare_parameter('scenario', 'DYNAMIC')
+        self.declare_parameter('output_dir', os.path.expanduser('~/drone-software/results'))
 
         self.mode     = self.get_parameter('mode').value.upper()
         self.scenario = self.get_parameter('scenario').value.upper()
+        self.output_dir = self.get_parameter('output_dir').value
+        os.makedirs(self.output_dir, exist_ok=True)
 
         # ── Tuning params (all MissionParams fields are ROS-overridable) ─
         defaults = MissionParams()
@@ -169,6 +175,11 @@ class BenchDryTest(Node):
         # Ctrl+C abort flag — set by SIGINT handler, picked up by _mission_tick.
         self.abort_requested = False
 
+        # ── CSV logging ───────────────────────────────────────────────
+        self.test_start_time = self.get_clock().now()
+        self.rows = []
+        self.csv_saved = False
+
         # ── Timers ────────────────────────────────────────────────────
         self.create_timer(0.1, self._heartbeat_tick)
         self.create_timer(0.05, self._mission_tick)
@@ -231,6 +242,33 @@ class BenchDryTest(Node):
         self.last_cmd_roll    = roll
         self.last_cmd_yaw_vel = yaw_vel
         self.last_cmd_thrust  = thrust
+
+        d_ground = math.hypot(self.pixel_err_x, self.pixel_err_y)
+        fwd, side = self._body_err()
+
+        time_ms = int((self.get_clock().now() - self.test_start_time).nanoseconds / 1e6)
+        row = {
+            'time_ms': time_ms,
+            'drone_x': self.drone_state.position[0] if len(self.drone_state.position) >= 1 else 0.0,
+            'drone_y': self.drone_state.position[1] if len(self.drone_state.position) >= 2 else 0.0,
+            'drone_yaw_rad': self.drone_state.orientation[2] if len(self.drone_state.orientation) >= 3 else 0.0,
+            'rotation_error_deg': self.relative_yaw_deg,
+            'altitude_m': self.virt_alt,
+            'pixel_err_x': self.pixel_err_x,
+            'pixel_err_y': self.pixel_err_y,
+            'ground_err_m': d_ground,
+            'forward_err_m': fwd,
+            'lateral_err_m': side,
+            'gimbal_norm': self.gimbal_angle_norm,
+            'locked': 1 if self.locked else 0,
+            'state': self.state,
+            'last_cmd_pitch': pitch,
+            'last_cmd_roll': roll,
+            'last_cmd_yaw_vel': yaw_vel,
+            'last_cmd_thrust': thrust
+        }
+        self.rows.append(row)
+
         self.get_logger().info(
             f'[DRY] {self.state:<14s} virt_alt={self.virt_alt:.2f}m '
             f'gimbal={self.gimbal_angle_norm:+.2f} '
@@ -247,6 +285,44 @@ class BenchDryTest(Node):
 
     def _elapsed(self):
         return (self.get_clock().now() - self.state_start).nanoseconds / 1e9
+
+    def _write_csv(self):
+        """Write the collected rows to a CSV file in ~/drone-software/results/."""
+        if self.csv_saved:
+            return
+        self.csv_saved = True
+
+        try:
+            now_str = datetime.now().strftime('%H%M%S')
+            filename = f'dry_{self.scenario}_{now_str}.csv'
+            filepath = os.path.join(self.output_dir, filename)
+
+            with open(filepath, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow([
+                    'time_ms', 'scenario',
+                    'drone_x', 'drone_y', 'drone_yaw_rad', 'rotation_error_deg',
+                    'altitude_m',
+                    'pixel_err_x', 'pixel_err_y', 'ground_err_m',
+                    'forward_err_m', 'lateral_err_m',
+                    'gimbal_norm', 'locked', 'state',
+                    'last_cmd_pitch', 'last_cmd_roll',
+                    'last_cmd_yaw_vel', 'last_cmd_thrust'])
+                for row in self.rows:
+                    writer.writerow([
+                        row['time_ms'], self.scenario,
+                        row['drone_x'], row['drone_y'], row['drone_yaw_rad'],
+                        row['rotation_error_deg'], row['altitude_m'],
+                        row['pixel_err_x'], row['pixel_err_y'], row['ground_err_m'],
+                        row['forward_err_m'], row['lateral_err_m'],
+                        row['gimbal_norm'], row['locked'], row['state'],
+                        row['last_cmd_pitch'], row['last_cmd_roll'],
+                        row['last_cmd_yaw_vel'], row['last_cmd_thrust']])
+
+            self.get_logger().info(
+                f'Dry bench CSV saved → {filepath}  ({len(self.rows)} rows)')
+        except Exception as e:
+            self.get_logger().error(f'Failed to write CSV: {e}')
 
     def _transition(self, new_state):
         self.get_logger().info(f'STATE: {self.state} → {new_state}')
@@ -409,6 +485,7 @@ class BenchDryTest(Node):
                 self._transition(MissionState.DONE)
             else:
                 self.get_logger().info('[DRY] ABORT (Ctrl+C) on ground → exiting')
+                self._write_csv()
                 raise SystemExit(0)
             return
 
@@ -590,6 +667,7 @@ class BenchDryTest(Node):
         elif self.state == MissionState.DONE:
             self._log_cmd(0.0, 0.0, 0.0, 0.0)
             if elapsed > 2.0:
+                self._write_csv()
                 self.get_logger().info('[DRY] Bench dry test complete — shutting down.')
                 raise SystemExit(0)
 

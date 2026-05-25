@@ -50,7 +50,6 @@ from interfaces.action import DroneCommand
 from interfaces.msg import ManualControlInput, GcsHeartbeat, DroneState, ServoCommand
 from geometry_msgs.msg import Vector3Stamped, TwistStamped
 from std_msgs.msg import String
-from px4_msgs.msg import VehicleLocalPosition
 
 from thyra.mission_params import MissionParams
 
@@ -138,9 +137,6 @@ class VisionLandingMission(Node):
         self.create_subscription(
             DroneState, '/asr/thyra/out/drone_state', self._drone_cb, 10)
         self.create_subscription(
-            VehicleLocalPosition, '/fmu/out/vehicle_local_position',
-            self._lpos_cb, qos_sensor)
-        self.create_subscription(
             Vector3Stamped, '/asr/aruco/pixel_error',
             self._pixel_cb, 10)
         # Truth subscriber is sim-only; the synthetic cam publishes it.
@@ -160,7 +156,6 @@ class VisionLandingMission(Node):
         self.return_state  = None    # State to resume after HOLD ends
 
         self.drone_state = DroneState()
-        self.local_pos   = VehicleLocalPosition()
 
         self.pixel_err_x      = 0.0
         self.pixel_err_y      = 0.0
@@ -226,9 +221,6 @@ class VisionLandingMission(Node):
     # ══════════════════════════════════════════════════════════════════
     def _drone_cb(self, msg: DroneState):
         self.drone_state = msg
-
-    def _lpos_cb(self, msg: VehicleLocalPosition):
-        self.local_pos = msg
         self.last_lpos_time = self.get_clock().now()
 
     def _pixel_cb(self, msg: Vector3Stamped):
@@ -335,12 +327,19 @@ class VisionLandingMission(Node):
         self.state_start = self.get_clock().now()
 
     # ══════════════════════════════════════════════════════════════════
+    #  Helpers
+    # ══════════════════════════════════════════════════════════════════
+    def _get_altitude(self):
+        """Get current altitude from drone_state.position[2], with bounds check."""
+        return -(self.drone_state.position[2] if len(self.drone_state.position) >= 3 else 0.0)
+
+    # ══════════════════════════════════════════════════════════════════
     #  Controllers
     # ══════════════════════════════════════════════════════════════════
     def _alt_hold_thrust(self, target_alt):
         """P-controller on altitude. Returns thrust value in [-1, 1].
         manual_aided interprets thrust as vz target (negative = climb)."""
-        alt = -self.local_pos.z
+        alt = self._get_altitude()
         alt_err = target_alt - alt          # positive = too low
         return -self.KP_ALT * alt_err       # negative = climb
 
@@ -348,7 +347,7 @@ class VisionLandingMission(Node):
         """Linear blend KP_HIGH → KP_LOW between takeoff_alt and
         terminal_alt_trigger. Higher gain near the ground compensates
         for the shrinking field of view per metre of error."""
-        alt = -self.local_pos.z
+        alt = self._get_altitude()
         if alt >= self.takeoff_alt:
             return self.KP_HIGH
         if alt <= self.terminal_alt_trigger:
@@ -394,7 +393,7 @@ class VisionLandingMission(Node):
         cmd_pitch = max(-1.0, min(1.0, kp * err_fwd))
         cmd_roll  = max(-1.0, min(1.0, kp * err_side))
 
-        yaw_cmd = self.relative_yaw_deg * self.KP_YAW
+        yaw_cmd = -self.relative_yaw_deg * self.KP_YAW
         self._send_vel(pitch=cmd_pitch, roll=cmd_roll,
                        yaw_vel=yaw_cmd, thrust=descend_rate)
 
@@ -407,7 +406,7 @@ class VisionLandingMission(Node):
             return
         self.return_state = self.state
         self.lock_loss_start = self.get_clock().now()
-        self.lock_loss_alt = -self.local_pos.z
+        self.lock_loss_alt = -self.drone_state.position[2]
         
         self.coast_pitch   = self.last_cmd_pitch
         self.coast_roll    = self.last_cmd_roll
@@ -432,7 +431,7 @@ class VisionLandingMission(Node):
         elapsed_lost = (self.get_clock().now() - self.lock_loss_start).nanoseconds / 1e9
 
         # Touchdown handoff to PX4 land mode (works for sim and real)
-        alt = -self.local_pos.z
+        alt = self._get_altitude()
         if alt < self.terminal_trig:
             self.get_logger().info(
                 f'HOLD: alt {alt:.2f}m < {self.terminal_trig:.2f}m → land (PX4 takes over)')
@@ -458,7 +457,7 @@ class VisionLandingMission(Node):
         at descend_vz while the lateral command decays over coast_decay_time.
         Recovery is automatic: next tick with lock falls through to
         _execute_slant_landing, which clears terminal_loss_start."""
-        alt = -self.local_pos.z
+        alt = self._get_altitude()
         if alt < self.terminal_trig:
             self.get_logger().info(
                 f'TERMINAL_LAND coast: alt {alt:.2f}m < {self.terminal_trig:.2f}m '
@@ -565,7 +564,7 @@ class VisionLandingMission(Node):
         if self.state in (MissionState.DESCEND_TO_LOW,
                           MissionState.STABILIZE_LOW,
                           MissionState.TERMINAL_LAND):
-            alt = -self.local_pos.z
+            alt = self._get_altitude()
             if alt < self.terminal_trig:
                 self.get_logger().info(
                     f'ALT {alt:.2f}m < {self.terminal_trig:.2f}m → land (PX4 takes over)')
@@ -586,7 +585,7 @@ class VisionLandingMission(Node):
                 self._transition(MissionState.TAKEOFF)
 
         elif self.state == MissionState.TAKEOFF:
-            alt = -self.local_pos.z
+            alt = self._get_altitude()
             if alt >= self.takeoff_alt - 0.5:
                 self.get_logger().info(f'Alt {alt:.2f}m reached → SEARCH')
                 self._send_cmd('manual_aided')
@@ -600,12 +599,13 @@ class VisionLandingMission(Node):
                 thrust = self._alt_hold_thrust(self.takeoff_alt)
                 self._send_vel(pitch=0.0, roll=0.0, thrust=thrust)
             else:
-                # STATIC: fly toward the known marker location
+                # STATIC: pitch toward target (ignore yaw)
                 err_x = self.target_start_x - (self.drone_state.position[0] if len(self.drone_state.position) >= 1 else 0.0)
                 err_y = self.target_start_y - (self.drone_state.position[1] if len(self.drone_state.position) >= 2 else 0.0)
                 thrust = self._alt_hold_thrust(self.takeoff_alt)
                 self._send_vel(pitch=err_x * self.search_kp,
-                               roll =err_y * self.search_kp,
+                               roll=0.0,
+                               yaw_vel=0.0,
                                thrust=thrust)
 
             if self.locked:
@@ -671,7 +671,7 @@ class VisionLandingMission(Node):
                 self._transition(MissionState.DESCEND_TO_LOW)
 
         elif self.state == MissionState.DESCEND_TO_LOW:
-            alt = -self.local_pos.z
+            alt = self._get_altitude()
             if alt <= self.descend_alt + 0.3:
                 self.get_logger().info(f'Alt {alt:.2f}m → STABILIZE_LOW')
                 self._transition(MissionState.STABILIZE_LOW)
@@ -767,7 +767,7 @@ class VisionLandingMission(Node):
             'mode':             self.mode,
             'scenario':         self.scenario,
             'locked':           bool(self.locked),
-            'altitude_m':       float(-self.local_pos.z),
+            'altitude_m':       float(self._get_altitude()),
             'pixel_err_x':      float(self.pixel_err_x),
             'pixel_err_y':      float(self.pixel_err_y),
             'ground_err_m':     float(math.hypot(self.pixel_err_x, self.pixel_err_y)),

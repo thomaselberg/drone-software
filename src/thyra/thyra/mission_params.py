@@ -20,10 +20,10 @@ class MissionParams:
     # KP is linearly interpolated by altitude: KP_HIGH at takeoff_alt,
     # KP_LOW at terminal_alt_trigger. Larger gains near the ground
     # compensate for the shrinking pixel→world conversion.
-    KP_HIGH: float = 0.5   # P-gain at takeoff_alt (interpolation top end)
-    KP_LOW:  float = 1.0    # P-gain at terminal_alt_trigger (bottom end)
+    KP_HIGH: float = 0.3   # P-gain at takeoff_alt (interpolation top end)
+    KP_LOW:  float = 0.6    # P-gain at terminal_alt_trigger (bottom end)
     KP_ALT:  float = 0.30   # Altitude-hold P gain
-    KP_YAW:  float = 0.04   # Yaw alignment P gain
+    KP_YAW:  float = 0.01   # Yaw alignment P gain
 
     # ── Altitudes (metres, positive up) ─────────────────────────────
     takeoff_alt:          float = 2.0
@@ -42,7 +42,7 @@ class MissionParams:
     lpos_grace_s:           float = 5.0   # level-hold time before failsafe land on stale local_pos
 
     # ── Thresholds ──────────────────────────────────────────────────
-    ground_err_thresh: float = 1.0   # SEARCH lock gate AND STABILIZE_HIGH lower bound
+    ground_err_thresh: float = 1.5   # SEARCH lock gate AND STABILIZE_HIGH lower bound
     search_kp:         float = 0.5   # P gain for STATIC SEARCH fly-toward
     blind_plunge_vz:   float = 0.5   # STATIC mode dead-reckon plunge speed
 
@@ -70,5 +70,5 @@ class MissionParams:
     # the synthetic cam is unaffected. Re-measure and override these
     # via ROS params before a real flight if the servo shifts.
     # Calibrated 2026-05-24: -0.860 = down, +0.10 = 45° slant.
-    gimbal_down_cmd: float = -0.860  # servo value for straight-down
-    gimbal_45_cmd:   float =  0.10   # servo value for 45° slant
+    gimbal_down_cmd: float = -0.70  # servo value for straight-down
+    gimbal_45_cmd:   float =  0.20   # servo value for 45° slant
