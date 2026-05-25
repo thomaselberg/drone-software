@@ -1,0 +1,29 @@
+═══════════════════════════════════════════
+[INFO] [1778168066.333167356] [aruco_detector_comparison]: ArUco detector (comparison) started with GROUND PROJECTION + YAW
+[INFO] [1778168082.537922950] [real_flight_test]: Real Flight Test started. Mode: HANDHELD
+[INFO] [1778168082.539467838] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168084.570711862] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168086.570769474] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168088.626068724] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168090.670718169] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168092.676913227] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168094.731182605] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168096.770950654] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168098.771010684] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168100.771085618] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168102.778273106] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168104.820811543] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168106.820912182] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168108.821394596] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168110.873803613] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168112.875330838] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168114.878208550] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168116.880851906] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168118.920893226] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168120.978742525] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168122.079130218] [real_flight_test]: STATE TRANSITION: WAITING → SEARCH
+[INFO] [1778168122.120884320] [real_flight_test]: LOCKED — pixel_err=(0.00, 0.00)  gimbal=-0.00
+[INFO] [1778168122.121531642] [real_flight_test]: Target within range — BEGIN DESCENT MODE
+[INFO] [1778168122.121977202] [real_flight_test]: STATE TRANSITION: SEARCH → DESCEND_DEMO
+[INFO] [1778168132.170951385] [real_flight_test]: Gimbal sweep complete — place drone down
+[INFO] [1778168132.171539489] [real_flight_test]: STATE TRANSITION: DESCEND_DEMO → DONE

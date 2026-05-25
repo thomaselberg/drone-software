@@ -1,0 +1,11 @@
+═══════════════════════════════════════════
+[INFO] [1778168193.123255352] [aruco_detector_comparison]: ArUco detector (comparison) started with GROUND PROJECTION + YAW
+[INFO] [1778168208.696695846] [real_flight_test]: Real Flight Test started. Mode: HANDHELD
+[INFO] [1778168208.699020022] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168210.738732246] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778168211.888862103] [real_flight_test]: STATE TRANSITION: WAITING → SEARCH
+[INFO] [1778168211.944789972] [real_flight_test]: LOCKED — pixel_err=(0.00, 0.00)  gimbal=-0.00
+[INFO] [1778168211.948386811] [real_flight_test]: Target within range — BEGIN DESCENT MODE
+[INFO] [1778168211.949171992] [real_flight_test]: STATE TRANSITION: SEARCH → DESCEND_DEMO
+[INFO] [1778168221.990139951] [real_flight_test]: Gimbal sweep complete — place drone down
+[INFO] [1778168221.990911596] [real_flight_test]: STATE TRANSITION: DESCEND_DEMO → DONE

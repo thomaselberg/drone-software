@@ -1,0 +1,6 @@
+═══════════════════════════════════════════
+[INFO] [1778167378.243145513] [aruco_detector_comparison]: ArUco detector (comparison) started with GROUND PROJECTION + YAW
+[INFO] [1778167393.766363898] [real_flight_test]: Real Flight Test started. Mode: HOVER_TRACK
+[INFO] [1778167393.767763354] [real_flight_test]: CMD → arm  pose=None
+[INFO] [1778167394.519795417] [real_flight_test]: STATE TRANSITION: IDLE → ARMING
+[WARN] [1778167394.564019922] [real_flight_test.action_client]: Ignoring unexpected goal response. There may be more than one action server for the action '/asr/thyra/in/drone_command'

@@ -1,0 +1,8 @@
+═══════════════════════════════════════════
+[INFO] [1778167752.308732070] [aruco_detector_comparison]: ArUco detector (comparison) started with GROUND PROJECTION + YAW
+[INFO] [1778167768.408628570] [real_flight_test]: Real Flight Test started. Mode: HANDHELD
+[INFO] [1778167805.630101154] [real_flight_test]: STATE TRANSITION: WAITING → SEARCH
+[INFO] [1778167805.681000443] [real_flight_test]: Target within 3m — BEGIN DESCENT MODE
+[INFO] [1778167805.682839685] [real_flight_test]: STATE TRANSITION: SEARCH → DESCEND_DEMO
+[INFO] [1778167815.747501270] [real_flight_test]: Gimbal sweep complete — place drone down
+[INFO] [1778167815.749780082] [real_flight_test]: STATE TRANSITION: DESCEND_DEMO → DONE

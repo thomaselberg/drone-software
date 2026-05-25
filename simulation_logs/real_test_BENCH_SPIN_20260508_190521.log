@@ -1,0 +1,5 @@
+═══════════════════════════════════════════
+[INFO] [1778259923.672730950] [aruco_detector_comparison]: ArUco detector (comparison) started with GROUND PROJECTION + YAW
+[INFO] [1778259940.118359497] [real_flight_test]: Real Flight Test started. Mode: BENCH_SPIN
+[INFO] [1778259940.121317901] [real_flight_test]: CMD → arm  pose=None
+[INFO] [1778259940.122770706] [real_flight_test]: STATE TRANSITION: IDLE → ARMING

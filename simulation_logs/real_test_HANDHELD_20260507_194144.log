@@ -1,0 +1,87 @@
+═══════════════════════════════════════════
+[INFO] [1778175706.345246237] [aruco_detector_comparison]: ArUco detector (comparison) started with GROUND PROJECTION + YAW
+[INFO] [1778175722.834185589] [real_flight_test]: Real Flight Test started. Mode: HANDHELD
+[INFO] [1778175722.836133335] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778175724.880427638] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778175726.932524714] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778175728.974009130] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778175730.975202207] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778175732.977578580] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778175734.983369812] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778175737.023135822] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778175739.081629467] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778175741.129180056] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778175743.176381540] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778175745.181603362] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778175747.227136227] [real_flight_test]: WAITING — show ArUco marker (ID 0) to camera
+[INFO] [1778175748.823098386] [real_flight_test]: STATE TRANSITION: WAITING → SEARCH
+[INFO] [1778175748.879515484] [real_flight_test]: LOCKED — pixel_err=(-8.67, 21.29)  gimbal=-1.00
+[INFO] [1778175749.322916732] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175749.922841671] [real_flight_test]: LOCKED — pixel_err=(-5.98, 21.80)  gimbal=-1.00
+[INFO] [1778175750.976762068] [real_flight_test]: LOCKED — pixel_err=(-5.98, 19.39)  gimbal=-1.00
+[INFO] [1778175751.423247271] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175751.976871640] [real_flight_test]: LOCKED — pixel_err=(-3.07, 20.50)  gimbal=-1.00
+[INFO] [1778175753.022965665] [real_flight_test]: LOCKED — pixel_err=(-5.20, 20.58)  gimbal=-1.00
+[INFO] [1778175753.484640434] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175755.527489325] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175757.574553193] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175759.623380537] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175760.472841344] [real_flight_test]: LOCKED — pixel_err=(-9.28, 17.67)  gimbal=-1.00
+[INFO] [1778175761.474534480] [real_flight_test]: LOCKED — pixel_err=(-5.42, 20.77)  gimbal=-1.00
+[INFO] [1778175761.673394576] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175762.628390284] [real_flight_test]: LOCKED — pixel_err=(-10.59, 20.49)  gimbal=-1.00
+[INFO] [1778175763.729446315] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175763.876532569] [real_flight_test]: LOCKED — pixel_err=(-10.00, 21.61)  gimbal=-1.00
+[INFO] [1778175765.075744291] [real_flight_test]: LOCKED — pixel_err=(-3.90, 30.23)  gimbal=-1.00
+[INFO] [1778175765.775173217] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175766.824428042] [real_flight_test]: LOCKED — pixel_err=(-10.82, 22.61)  gimbal=-1.00
+[INFO] [1778175767.792785891] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175769.826860422] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175771.880748197] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175773.925358914] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175775.926261381] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175777.933115941] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175779.973892956] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175781.975770546] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175783.979969279] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175786.023125470] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175788.080881667] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175790.123233405] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175792.186696755] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175794.223079616] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175796.283035149] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175798.323169105] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175800.323341368] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175802.323621753] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175804.328377254] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175806.330486126] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175808.377287329] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175810.428963888] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175812.433798652] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175814.475664814] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175816.530070833] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175818.574769329] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175820.628778735] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175822.673465605] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175824.726228320] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175826.730403280] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175828.781041783] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175830.824713585] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175832.874115615] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175834.880710582] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175836.930642190] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175838.980842686] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175841.023298148] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175843.078539166] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175845.123034533] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175847.123724883] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175849.172849145] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175851.190700434] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175853.233587308] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175855.275822878] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175857.275972047] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175859.325294439] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175861.328807982] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175863.375676945] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175865.429132564] [real_flight_test]: SEARCH — no marker
+[INFO] [1778175867.474816190] [real_flight_test]: SEARCH — no marker
