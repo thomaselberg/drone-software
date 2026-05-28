@@ -393,7 +393,7 @@ class VisionLandingMission(Node):
         cmd_pitch = max(-1.0, min(1.0, kp * err_fwd))
         cmd_roll  = max(-1.0, min(1.0, kp * err_side))
 
-        yaw_cmd = -self.relative_yaw_deg * self.KP_YAW
+        yaw_cmd = self.relative_yaw_deg * self.KP_YAW
         self._send_vel(pitch=cmd_pitch, roll=cmd_roll,
                        yaw_vel=yaw_cmd, thrust=descend_rate)
 
