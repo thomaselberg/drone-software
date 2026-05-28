@@ -393,7 +393,7 @@ class VisionLandingMission(Node):
         cmd_pitch = max(-1.0, min(1.0, kp * err_fwd))
         cmd_roll  = max(-1.0, min(1.0, kp * err_side))
 
-        yaw_cmd = (self.relative_yaw_deg - 45.0) * self.KP_YAW if self.locked else self.relative_yaw_deg * self.KP_YAW
+        yaw_cmd = (self.relative_yaw_deg) * self.KP_YAW if self.locked else 0.0
         self._send_vel(pitch=cmd_pitch, roll=cmd_roll,
                        yaw_vel=yaw_cmd, thrust=descend_rate)
 
@@ -729,7 +729,7 @@ class VisionLandingMission(Node):
             self.blind_plunge_active = True
         vz = self.blind_plunge_vz if self.blind_plunge_active else 0.0
 
-        yaw_cmd = (self.relative_yaw_deg - 45.0) * self.KP_YAW if self.locked else self.relative_yaw_deg * self.KP_YAW
+        yaw_cmd = (self.relative_yaw_deg) * self.KP_YAW if self.locked else 0.0
         self._send_vel(pitch=pitch_cmd, roll=roll_cmd,
                        yaw_vel=yaw_cmd, thrust=vz)
 

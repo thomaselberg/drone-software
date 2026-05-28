@@ -287,6 +287,9 @@ private:
             // Context invalid on shutdown
         }
 
+        // Debug image disabled for performance
+        // Ground error and yaw are already published via /asr/aruco/pixel_error
+        /*
         // Republish annotated frame so it can be viewed remotely (rqt_image_view)
         // Downsample to 320x240 to save CPU and network bandwidth
         try {
@@ -300,6 +303,7 @@ private:
         } catch (...) {
             // Context invalid on shutdown
         }
+        */
 
         if (show_window_) {
             cv::imshow("ArUco Detector", frame);
