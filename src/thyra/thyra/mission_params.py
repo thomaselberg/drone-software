@@ -26,8 +26,8 @@ class MissionParams:
     KP_YAW:  float = 0.04   # Yaw alignment P gain
 
     # ── Altitudes (metres, positive up) ─────────────────────────────
-    takeoff_alt:          float = 2.0
-    descend_alt:          float = 1.0
+    takeoff_alt:          float = 2.5
+    descend_alt:          float = 1.5
     terminal_alt_trigger: float = 0.4   # → hand off to PX4 land mode
     descend_vz:           float = 0.3   # m/s downward
 
