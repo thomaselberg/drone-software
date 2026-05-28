@@ -207,10 +207,15 @@ private:
         }
 
         cv::Mat frame = cv_ptr->image;
+
+        // Reduce resolution to 480p for faster detection
+        cv::Mat resized_frame;
+        cv::resize(frame, resized_frame, cv::Size(640, 480));
+
         std::vector<int> ids;
         std::vector<std::vector<cv::Point2f>> corners;
 
-        cv::aruco::detectMarkers(frame, aruco_dict_, corners, ids, aruco_params_);
+        cv::aruco::detectMarkers(resized_frame, aruco_dict_, corners, ids, aruco_params_);
 
         geometry_msgs::msg::Vector3Stamped out;
         out.header.stamp = this->now();
@@ -287,23 +292,19 @@ private:
             // Context invalid on shutdown
         }
 
-        // Debug image disabled for performance
-        // Ground error and yaw are already published via /asr/aruco/pixel_error
-        /*
         // Republish annotated frame so it can be viewed remotely (rqt_image_view)
-        // Downsample to 320x240 to save CPU and network bandwidth
+        // Publish at lowest viable resolution (160x120)
         try {
-            cv::Mat resized_frame;
-            cv::resize(frame, resized_frame, cv::Size(320, 240));
+            cv::Mat debug_frame;
+            cv::resize(resized_frame, debug_frame, cv::Size(160, 120));
             std_msgs::msg::Header hdr;
             hdr.stamp = this->now();
             hdr.frame_id = "aruco_detector";
-            auto out_img = cv_bridge::CvImage(hdr, "bgr8", resized_frame).toImageMsg();
+            auto out_img = cv_bridge::CvImage(hdr, "bgr8", debug_frame).toImageMsg();
             pub_annotated_->publish(*out_img);
         } catch (...) {
             // Context invalid on shutdown
         }
-        */
 
         if (show_window_) {
             cv::imshow("ArUco Detector", frame);
