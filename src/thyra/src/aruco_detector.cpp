@@ -288,11 +288,14 @@ private:
         }
 
         // Republish annotated frame so it can be viewed remotely (rqt_image_view)
+        // Downsample to 320x240 to save CPU and network bandwidth
         try {
+            cv::Mat resized_frame;
+            cv::resize(frame, resized_frame, cv::Size(320, 240));
             std_msgs::msg::Header hdr;
             hdr.stamp = this->now();
             hdr.frame_id = "aruco_detector";
-            auto out_img = cv_bridge::CvImage(hdr, "bgr8", frame).toImageMsg();
+            auto out_img = cv_bridge::CvImage(hdr, "bgr8", resized_frame).toImageMsg();
             pub_annotated_->publish(*out_img);
         } catch (...) {
             // Context invalid on shutdown
